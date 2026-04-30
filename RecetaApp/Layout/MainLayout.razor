@@ -1,0 +1,72 @@
+@inherits LayoutComponentBase
+@using RecetaApp.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+@if (!AuthService.IsInitialized)
+{
+    <div class="d-flex justify-content-center align-items-center" style="height: 100vh; background: linear-gradient(135deg, #1565C0 0%, #00897B 100%);">
+        <div class="text-center text-white">
+            <div class="spinner-border mb-3" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p>Verificando sesión...</p>
+        </div>
+    </div>
+}
+else if (AuthService.IsAuthenticated)
+{
+    <div class="page">
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+
+        <main>
+            <div class="top-row px-4">
+                <span class="me-3">@AuthService.CurrentUser?.Email</span>
+                <button class="btn btn-link" @onclick="HandleLogout">Cerrar sesión</button>
+            </div>
+
+            <article class="content px-4">
+                @Body
+            </article>
+        </main>
+    </div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        AuthService.AuthStateChanged += OnAuthStateChanged;
+
+        if (!AuthService.IsInitialized)
+        {
+            await AuthService.WaitForInitializationAsync();
+        }
+
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private void OnAuthStateChanged(UserInfo? user)
+    {
+        if (user == null && AuthService.IsInitialized)
+        {
+            Navigation.NavigateTo("/login");
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.SignOutAsync();
+    }
+
+    public void Dispose()
+    {
+        AuthService.AuthStateChanged -= OnAuthStateChanged;
+    }
+}

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RecetaApp</title>
+    <base href="/" />
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link href="RecetaApp.styles.css" rel="stylesheet" />
+    <link href="manifest.webmanifest" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+</head>
+
+<body>
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+
+    <div id="blazor-error-ui">
+        Ha ocurrido un error inesperado.
+        <a href="." class="reload">Recargar</a>
+        <span class="dismiss">&#10005;</span>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getAuth,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import {
+            getFirestore,
+            collection,
+            doc,
+            getDocs,
+            getDoc,
+            addDoc,
+            setDoc,
+            updateDoc,
+            deleteDoc,
+            query,
+            where,
+            orderBy,
+            limit
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import {
+            getStorage,
+            ref,
+            uploadBytes,
+            getDownloadURL,
+            deleteObject
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        // TODO: Reemplazar con la configuración de tu proyecto Firebase
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "TU_PROYECTO.firebaseapp.com",
+            projectId: "TU_PROYECTO",
+            storageBucket: "TU_PROYECTO.firebasestorage.app",
+            messagingSenderId: "TU_SENDER_ID",
+            appId: "TU_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        window.firebaseAuth = {
+            signIn: async (email, password) => {
+                try {
+                    const result = await signInWithEmailAndPassword(auth, email, password);
+                    return { success: true, user: { uid: result.user.uid, email: result.user.email } };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            signUp: async (email, password) => {
+                try {
+                    const result = await createUserWithEmailAndPassword(auth, email, password);
+                    return { success: true, user: { uid: result.user.uid, email: result.user.email } };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            signOut: async () => {
+                try {
+                    await signOut(auth);
+                    return { success: true };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            getCurrentUser: () => {
+                const user = auth.currentUser;
+                if (user) {
+                    return { uid: user.uid, email: user.email };
+                }
+                return null;
+            },
+            onAuthStateChanged: (dotnetHelper) => {
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        dotnetHelper.invokeMethodAsync('OnAuthStateChanged', { uid: user.uid, email: user.email });
+                    } else {
+                        dotnetHelper.invokeMethodAsync('OnAuthStateChanged', null);
+                    }
+                });
+            }
+        };
+
+        window.firestore = {
+            getAll: async (collectionName) => {
+                try {
+                    const snapshot = await getDocs(collection(db, collectionName));
+                    const docs = [];
+                    snapshot.forEach(doc => {
+                        docs.push({ id: doc.id, ...doc.data() });
+                    });
+                    return { success: true, data: docs };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            query: async (collectionName, options) => {
+                try {
+                    const constraints = [];
+                    if (options && Array.isArray(options.filters)) {
+                        options.filters.forEach(filter => {
+                            if (filter && filter.field) {
+                                constraints.push(where(filter.field, filter.op || "==", filter.value));
+                            }
+                        });
+                    }
+                    if (options && Array.isArray(options.orderBy)) {
+                        options.orderBy.forEach(order => {
+                            if (order && order.field) {
+                                constraints.push(orderBy(order.field, order.direction || "asc"));
+                            }
+                        });
+                    }
+                    if (options && Number.isInteger(options.limit) && options.limit > 0) {
+                        constraints.push(limit(options.limit));
+                    }
+
+                    const baseRef = collection(db, collectionName);
+                    const queryRef = constraints.length ? query(baseRef, ...constraints) : baseRef;
+                    const snapshot = await getDocs(queryRef);
+                    const docs = [];
+                    snapshot.forEach(doc => {
+                        docs.push({ id: doc.id, ...doc.data() });
+                    });
+                    return { success: true, data: docs };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            getById: async (collectionName, id) => {
+                try {
+                    const docRef = doc(db, collectionName, id);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
+                    }
+                    return { success: false, error: "Documento no encontrado" };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            add: async (collectionName, data) => {
+                try {
+                    const docRef = await addDoc(collection(db, collectionName), data);
+                    return { success: true, id: docRef.id };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            set: async (collectionName, id, data) => {
+                try {
+                    await setDoc(doc(db, collectionName, id), data);
+                    return { success: true };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            update: async (collectionName, id, data) => {
+                try {
+                    await updateDoc(doc(db, collectionName, id), data);
+                    return { success: true };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            delete: async (collectionName, id) => {
+                try {
+                    await deleteDoc(doc(db, collectionName, id));
+                    return { success: true };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            }
+        };
+
+        window.firebaseStorage = {
+            uploadFile: async (path, fileInputElement) => {
+                try {
+                    const file = fileInputElement.files[0];
+                    if (!file) {
+                        return { success: false, error: "No se seleccionó archivo" };
+                    }
+
+                    const storageRef = ref(storage, path);
+                    const snapshot = await uploadBytes(storageRef, file);
+                    const downloadUrl = await getDownloadURL(snapshot.ref);
+
+                    return {
+                        success: true,
+                        url: downloadUrl,
+                        fileName: file.name,
+                        fileSize: file.size,
+                        fileType: file.type
+                    };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            deleteFile: async (path) => {
+                try {
+                    const storageRef = ref(storage, path);
+                    await deleteObject(storageRef);
+                    return { success: true };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            }
+        };
+    </script>
+
+    <!-- html2pdf para exportar a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        window.exportToPdf = async (elementId, fileName) => {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            const opt = {
+                margin: [5, 10, 5, 10],
+                filename: fileName || 'receta.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+            };
+
+            await html2pdf().set(opt).from(element).save();
+        };
+    </script>
+
+    <script>
+        window.waitForFirebase = () => {
+            return new Promise((resolve) => {
+                const check = () => {
+                    if (window.firebaseAuth) resolve();
+                    else setTimeout(check, 50);
+                };
+                check();
+            });
+        };
+    </script>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js').then(registration => {
+                setInterval(() => { registration.update(); }, 60 * 1000);
+
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            newWorker.postMessage('skipWaiting');
+                        }
+                    });
+                });
+            });
+
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
+            });
+        }
+    </script>
+</body>
+
+</html>

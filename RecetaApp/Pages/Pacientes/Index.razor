@@ -1,0 +1,180 @@
+@page "/pacientes"
+@inject PacienteService PacienteService
+@inject NavigationManager Navigation
+
+<PageTitle>Pacientes - RecetaApp</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0" style="color: #1565C0;">Pacientes</h3>
+    <button class="btn-modern btn-modern-primary" @onclick="() => showForm = true">
+        + Nuevo Paciente
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (pacientes.Count == 0 && !showForm)
+{
+    <div class="text-center py-5">
+        <p class="text-muted fs-5">No hay pacientes registrados</p>
+        <button class="btn-modern btn-modern-primary" @onclick="() => showForm = true">Agregar primer paciente</button>
+    </div>
+}
+else
+{
+    @if (showForm)
+    {
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 16px;">
+            <div class="card-body p-4">
+                <h5 class="mb-3">@(editingPaciente != null ? "Editar" : "Nuevo") Paciente</h5>
+
+                <div class="form-grid-2 mb-3">
+                    <div class="form-group">
+                        <label class="form-label-modern">Nombre completo *</label>
+                        <input class="form-input" @bind="formModel.Nombre" placeholder="Nombre del paciente" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-modern">Fecha de nacimiento</label>
+                        <input class="form-input" @bind="formModel.FechaNacimiento" placeholder="dd/mm/aaaa" />
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label-modern">Alergias</label>
+                    <input class="form-input" @bind="formModel.Alergias" placeholder="Alergias conocidas" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label-modern">Notas</label>
+                    <textarea class="form-input form-textarea" @bind="formModel.Notas" placeholder="Observaciones adicionales"></textarea>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">@errorMessage</div>
+                }
+
+                <div class="d-flex gap-2">
+                    <button class="btn-modern btn-modern-primary" @onclick="SavePaciente" disabled="@isSaving">
+                        @if (isSaving) { <div class="btn-spinner"></div> }
+                        Guardar
+                    </button>
+                    <button class="btn-modern btn-modern-secondary" @onclick="CancelForm">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row g-3">
+        @foreach (var paciente in pacientes)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-1">@paciente.Nombre</h5>
+                        @if (!string.IsNullOrEmpty(paciente.FechaNacimiento))
+                        {
+                            <small class="text-muted d-block mb-2">Nacimiento: @paciente.FechaNacimiento</small>
+                        }
+                        @if (!string.IsNullOrEmpty(paciente.Alergias))
+                        {
+                            <span class="badge bg-warning text-dark mb-2">Alergias: @paciente.Alergias</span>
+                        }
+                        @if (!string.IsNullOrEmpty(paciente.Notas))
+                        {
+                            <p class="text-muted small mb-2">@paciente.Notas</p>
+                        }
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => EditPaciente(paciente)">Editar</button>
+                            <button class="btn btn-sm btn-outline-info" @onclick='() => Navigation.NavigateTo($"/recetas?pacienteId={paciente.Id}")'>Recetas</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePaciente(paciente)">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Paciente> pacientes = new();
+    private Paciente formModel = new();
+    private Paciente? editingPaciente;
+    private bool isLoading = true;
+    private bool showForm = false;
+    private bool isSaving = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        pacientes = await PacienteService.GetAllAsync();
+        isLoading = false;
+    }
+
+    private void EditPaciente(Paciente paciente)
+    {
+        editingPaciente = paciente;
+        formModel = new Paciente
+        {
+            Id = paciente.Id,
+            Nombre = paciente.Nombre,
+            FechaNacimiento = paciente.FechaNacimiento,
+            Alergias = paciente.Alergias,
+            Notas = paciente.Notas,
+            UserId = paciente.UserId,
+            CreatedAt = paciente.CreatedAt
+        };
+        showForm = true;
+    }
+
+    private async Task SavePaciente()
+    {
+        if (string.IsNullOrWhiteSpace(formModel.Nombre))
+        {
+            errorMessage = "El nombre es obligatorio";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = null;
+
+        if (editingPaciente != null)
+        {
+            var (success, error) = await PacienteService.UpdateAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+        }
+        else
+        {
+            var (success, error, _) = await PacienteService.AddAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+        }
+
+        isSaving = false;
+        CancelForm();
+        await LoadData();
+    }
+
+    private async Task DeletePaciente(Paciente paciente)
+    {
+        await PacienteService.DeleteAsync(paciente.Id);
+        await LoadData();
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        editingPaciente = null;
+        formModel = new();
+        errorMessage = null;
+    }
+}

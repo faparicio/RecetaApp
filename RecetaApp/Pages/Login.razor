@@ -1,0 +1,184 @@
+@page "/login"
+@layout EmptyLayout
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="login-container">
+    @if (isCheckingSession)
+    {
+        <div class="text-center text-white">
+            <div class="spinner-border mb-3" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p>Verificando sesión...</p>
+        </div>
+    }
+    else
+    {
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-icon">&#9764;</div>
+                <h2>RecetaApp</h2>
+                <p>@(isRegisterMode ? "Crear cuenta" : "Iniciar sesión")</p>
+            </div>
+
+            <EditForm Model="@loginModel" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @errorMessage
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success" role="alert">
+                        @successMessage
+                    </div>
+                }
+
+                <div class="form-group mb-3">
+                    <label for="email" class="form-label">Correo electrónico</label>
+                    <InputText id="email" @bind-Value="loginModel.Email" class="form-control"
+                               placeholder="correo@ejemplo.com" disabled="@isLoading" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <InputText id="password" @bind-Value="loginModel.Password" type="password"
+                               class="form-control" placeholder="••••••••" disabled="@isLoading" />
+                </div>
+
+                @if (isRegisterMode)
+                {
+                    <div class="form-group mb-3">
+                        <label for="confirmPassword" class="form-label">Confirmar contraseña</label>
+                        <InputText id="confirmPassword" @bind-Value="loginModel.ConfirmPassword" type="password"
+                                   class="form-control" placeholder="••••••••" disabled="@isLoading" />
+                    </div>
+                }
+
+                <button type="submit" class="btn btn-primary w-100 mb-3" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        <span>Procesando...</span>
+                    }
+                    else
+                    {
+                        @(isRegisterMode ? "Registrarse" : "Iniciar sesión")
+                    }
+                </button>
+            </EditForm>
+
+            <div class="text-center">
+                <button class="btn btn-link" @onclick="ToggleMode" disabled="@isLoading">
+                    @(isRegisterMode ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate")
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private bool isRegisterMode = false;
+    private bool isLoading = false;
+    private bool isCheckingSession = true;
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsInitialized)
+        {
+            await AuthService.WaitForInitializationAsync();
+        }
+
+        isCheckingSession = false;
+
+        if (AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        errorMessage = null;
+        successMessage = null;
+        isLoading = true;
+
+        try
+        {
+            if (isRegisterMode)
+            {
+                if (loginModel.Password != loginModel.ConfirmPassword)
+                {
+                    errorMessage = "Las contraseñas no coinciden";
+                    return;
+                }
+
+                var result = await AuthService.SignUpAsync(loginModel.Email, loginModel.Password);
+                if (result.Success)
+                {
+                    successMessage = "Cuenta creada exitosamente";
+                    Navigation.NavigateTo("/");
+                }
+                else
+                {
+                    errorMessage = TranslateError(result.Error);
+                }
+            }
+            else
+            {
+                var result = await AuthService.SignInAsync(loginModel.Email, loginModel.Password);
+                if (result.Success)
+                {
+                    Navigation.NavigateTo("/");
+                }
+                else
+                {
+                    errorMessage = TranslateError(result.Error);
+                }
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ToggleMode()
+    {
+        isRegisterMode = !isRegisterMode;
+        errorMessage = null;
+        successMessage = null;
+        loginModel = new LoginModel();
+    }
+
+    private string TranslateError(string? error)
+    {
+        return error switch
+        {
+            var e when e?.Contains("invalid-email") == true => "El correo electrónico no es válido",
+            var e when e?.Contains("user-disabled") == true => "Esta cuenta ha sido deshabilitada",
+            var e when e?.Contains("user-not-found") == true => "No existe una cuenta con este correo",
+            var e when e?.Contains("wrong-password") == true => "Contraseña incorrecta",
+            var e when e?.Contains("invalid-credential") == true => "Credenciales inválidas",
+            var e when e?.Contains("email-already-in-use") == true => "Ya existe una cuenta con este correo",
+            var e when e?.Contains("weak-password") == true => "La contraseña debe tener al menos 6 caracteres",
+            var e when e?.Contains("too-many-requests") == true => "Demasiados intentos. Intenta más tarde",
+            _ => error ?? "Error desconocido"
+        };
+    }
+
+    public class LoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,194 @@
+@page "/medicos"
+@inject MedicoService MedicoService
+
+<PageTitle>Médicos - RecetaApp</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0" style="color: #1565C0;">Médicos</h3>
+    <button class="btn-modern btn-modern-primary" @onclick="() => showForm = true">
+        + Nuevo Médico
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (medicos.Count == 0 && !showForm)
+{
+    <div class="text-center py-5">
+        <p class="text-muted fs-5">No hay médicos registrados</p>
+        <button class="btn-modern btn-modern-primary" @onclick="() => showForm = true">Agregar primer médico</button>
+    </div>
+}
+else
+{
+    @if (showForm)
+    {
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 16px;">
+            <div class="card-body p-4">
+                <h5 class="mb-3">@(editingMedico != null ? "Editar" : "Nuevo") Médico</h5>
+
+                <div class="form-grid-2 mb-3">
+                    <div class="form-group">
+                        <label class="form-label-modern">Nombre completo *</label>
+                        <input class="form-input" @bind="formModel.Nombre" placeholder="Dr. / Dra." />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-modern">Especialidad</label>
+                        <input class="form-input" @bind="formModel.Especialidad" placeholder="Ej: Cardiología" />
+                    </div>
+                </div>
+
+                <div class="form-grid-3 mb-3">
+                    <div class="form-group">
+                        <label class="form-label-modern">Cédula profesional</label>
+                        <input class="form-input" @bind="formModel.CedulaProfesional" placeholder="Número de cédula" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-modern">Teléfono</label>
+                        <input class="form-input" @bind="formModel.Telefono" placeholder="Teléfono de contacto" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-modern">Email</label>
+                        <input type="email" class="form-input" @bind="formModel.Email" placeholder="correo@ejemplo.com" />
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label-modern">Notas</label>
+                    <textarea class="form-input form-textarea" @bind="formModel.Notas" placeholder="Dirección, horarios, etc."></textarea>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">@errorMessage</div>
+                }
+
+                <div class="d-flex gap-2">
+                    <button class="btn-modern btn-modern-primary" @onclick="SaveMedico" disabled="@isSaving">
+                        @if (isSaving) { <div class="btn-spinner"></div> }
+                        Guardar
+                    </button>
+                    <button class="btn-modern btn-modern-secondary" @onclick="CancelForm">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row g-3">
+        @foreach (var medico in medicos)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-1">@medico.Nombre</h5>
+                        @if (!string.IsNullOrEmpty(medico.Especialidad))
+                        {
+                            <span class="badge bg-primary mb-2">@medico.Especialidad</span>
+                        }
+                        @if (!string.IsNullOrEmpty(medico.CedulaProfesional))
+                        {
+                            <small class="text-muted d-block">Cédula: @medico.CedulaProfesional</small>
+                        }
+                        @if (!string.IsNullOrEmpty(medico.Telefono))
+                        {
+                            <small class="text-muted d-block">Tel: @medico.Telefono</small>
+                        }
+                        @if (!string.IsNullOrEmpty(medico.Notas))
+                        {
+                            <p class="text-muted small mt-2 mb-0">@medico.Notas</p>
+                        }
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => EditMedico(medico)">Editar</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteMedico(medico)">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Medico> medicos = new();
+    private Medico formModel = new();
+    private Medico? editingMedico;
+    private bool isLoading = true;
+    private bool showForm = false;
+    private bool isSaving = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        medicos = await MedicoService.GetAllAsync();
+        isLoading = false;
+    }
+
+    private void EditMedico(Medico medico)
+    {
+        editingMedico = medico;
+        formModel = new Medico
+        {
+            Id = medico.Id,
+            Nombre = medico.Nombre,
+            Especialidad = medico.Especialidad,
+            CedulaProfesional = medico.CedulaProfesional,
+            Telefono = medico.Telefono,
+            Email = medico.Email,
+            Notas = medico.Notas,
+            UserId = medico.UserId,
+            CreatedAt = medico.CreatedAt
+        };
+        showForm = true;
+    }
+
+    private async Task SaveMedico()
+    {
+        if (string.IsNullOrWhiteSpace(formModel.Nombre))
+        {
+            errorMessage = "El nombre es obligatorio";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = null;
+
+        if (editingMedico != null)
+        {
+            var (success, error) = await MedicoService.UpdateAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+        }
+        else
+        {
+            var (success, error, _) = await MedicoService.AddAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+        }
+
+        isSaving = false;
+        CancelForm();
+        await LoadData();
+    }
+
+    private async Task DeleteMedico(Medico medico)
+    {
+        await MedicoService.DeleteAsync(medico.Id);
+        await LoadData();
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        editingMedico = null;
+        formModel = new();
+        errorMessage = null;
+    }
+}

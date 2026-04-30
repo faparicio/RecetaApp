@@ -1,0 +1,479 @@
+@page "/recetas"
+@inject RecetaService RecetaService
+@inject PacienteService PacienteService
+@inject MedicoService MedicoService
+@inject MedicamentoService MedicamentoService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Recetas - RecetaApp</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-0" style="color: #1565C0;">Recetas Médicas</h3>
+        @if (!string.IsNullOrEmpty(filterPacienteNombre))
+        {
+            <small class="text-muted">Filtrado por: @filterPacienteNombre
+                <button class="btn btn-link btn-sm p-0 ms-1" @onclick="ClearFilter">Quitar filtro</button>
+            </small>
+        }
+    </div>
+    <button class="btn-modern btn-modern-primary" @onclick="ShowNewForm">
+        + Nueva Receta
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (showForm)
+{
+    <div class="card mb-4 border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-body p-4">
+            <h5 class="mb-3">@(editingReceta != null ? "Editar" : "Nueva") Receta</h5>
+
+            <div class="form-grid-2 mb-3">
+                <div class="form-group">
+                    <label class="form-label-modern">Paciente *</label>
+                    <select class="form-input" @bind="formModel.PacienteId">
+                        <option value="">-- Seleccionar --</option>
+                        @foreach (var p in pacientes)
+                        {
+                            <option value="@p.Id">@p.Nombre</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label-modern">Médico</label>
+                    <select class="form-input" @bind="formModel.MedicoId">
+                        <option value="">-- Seleccionar --</option>
+                        @foreach (var m in medicos)
+                        {
+                            <option value="@m.Id">@m.Nombre</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-grid-2 mb-3">
+                <div class="form-group">
+                    <label class="form-label-modern">Fecha *</label>
+                    <input class="form-input" @bind="formModel.Fecha" placeholder="aaaa-mm-dd" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label-modern">Diagnóstico</label>
+                    <input class="form-input" @bind="formModel.Diagnostico" placeholder="Diagnóstico del médico" />
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="form-label-modern">Notas</label>
+                <textarea class="form-input form-textarea" @bind="formModel.Notas" placeholder="Indicaciones adicionales"></textarea>
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="form-label-modern">Foto de la receta</label>
+                <input type="file" accept="image/*" capture="environment" class="form-control" @ref="fileInput" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(formModel.FotoUrl))
+            {
+                <div class="mb-3">
+                    <img src="@formModel.FotoUrl" alt="Foto de receta" class="img-fluid rounded" style="max-height: 200px;" />
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">@errorMessage</div>
+            }
+
+            <div class="d-flex gap-2">
+                <button class="btn-modern btn-modern-primary" @onclick="SaveReceta" disabled="@isSaving">
+                    @if (isSaving) { <div class="btn-spinner"></div> }
+                    Guardar
+                </button>
+                <button class="btn-modern btn-modern-secondary" @onclick="CancelForm">Cancelar</button>
+            </div>
+        </div>
+    </div>
+}
+else if (selectedReceta != null)
+{
+    <!-- Detalle de receta -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h4 class="fw-bold mb-1">Receta - @selectedReceta.Fecha</h4>
+                    <p class="text-muted mb-0">Paciente: <strong>@selectedReceta.PacienteNombre</strong></p>
+                    @if (!string.IsNullOrEmpty(selectedReceta.MedicoNombre))
+                    {
+                        <p class="text-muted mb-0">Médico: <strong>@selectedReceta.MedicoNombre</strong></p>
+                    }
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ExportPdf()">PDF</button>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => selectedReceta = null">Volver</button>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(selectedReceta.Diagnostico))
+            {
+                <div class="mb-3">
+                    <strong>Diagnóstico:</strong> @selectedReceta.Diagnostico
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(selectedReceta.Notas))
+            {
+                <div class="mb-3">
+                    <strong>Notas:</strong> @selectedReceta.Notas
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(selectedReceta.FotoUrl))
+            {
+                <div class="mb-3">
+                    <img src="@selectedReceta.FotoUrl" alt="Foto receta" class="img-fluid rounded" style="max-height: 400px;" />
+                </div>
+            }
+
+            <!-- Medicamentos -->
+            <hr />
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">Medicamentos</h5>
+                <button class="btn btn-sm btn-outline-primary" @onclick="() => showMedForm = true">+ Agregar</button>
+            </div>
+
+            @if (showMedForm)
+            {
+                <div class="card bg-light border-0 mb-3" style="border-radius: 12px;">
+                    <div class="card-body p-3">
+                        <div class="form-grid-2 mb-2">
+                            <div class="form-group">
+                                <label class="form-label-modern">Medicamento *</label>
+                                <input class="form-input" @bind="medFormModel.Nombre" placeholder="Nombre del medicamento" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label-modern">Dosis</label>
+                                <input class="form-input" @bind="medFormModel.Dosis" placeholder="Ej: 500mg" />
+                            </div>
+                        </div>
+                        <div class="form-grid-2 mb-2">
+                            <div class="form-group">
+                                <label class="form-label-modern">Frecuencia</label>
+                                <input class="form-input" @bind="medFormModel.Frecuencia" placeholder="Ej: Cada 8 horas" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label-modern">Duración</label>
+                                <input class="form-input" @bind="medFormModel.Duracion" placeholder="Ej: 7 días" />
+                            </div>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="form-label-modern">Instrucciones</label>
+                            <input class="form-input" @bind="medFormModel.Instrucciones" placeholder="Ej: Tomar con alimentos" />
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-primary" @onclick="SaveMedicamento">Guardar</button>
+                            <button class="btn btn-sm btn-secondary" @onclick="() => { showMedForm = false; medFormModel = new(); }">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (medicamentos.Count == 0)
+            {
+                <p class="text-muted">No hay medicamentos registrados para esta receta.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Medicamento</th>
+                                <th>Dosis</th>
+                                <th>Frecuencia</th>
+                                <th>Duración</th>
+                                <th>Instrucciones</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var med in medicamentos)
+                            {
+                                <tr>
+                                    <td class="fw-bold">@med.Nombre</td>
+                                    <td>@med.Dosis</td>
+                                    <td>@med.Frecuencia</td>
+                                    <td>@med.Duracion</td>
+                                    <td>@med.Instrucciones</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteMedicamento(med.Id)">X</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Contenido oculto para PDF -->
+    <div id="receta-pdf" style="position: absolute; left: -9999px;">
+        <div style="padding: 20px; font-family: Arial, sans-serif;">
+            <h2 style="color: #1565C0; border-bottom: 2px solid #00897B; padding-bottom: 10px;">RecetaApp</h2>
+            <p><strong>Fecha:</strong> @selectedReceta.Fecha</p>
+            <p><strong>Paciente:</strong> @selectedReceta.PacienteNombre</p>
+            @if (!string.IsNullOrEmpty(selectedReceta.MedicoNombre))
+            {
+                <p><strong>Médico:</strong> @selectedReceta.MedicoNombre</p>
+            }
+            @if (!string.IsNullOrEmpty(selectedReceta.Diagnostico))
+            {
+                <p><strong>Diagnóstico:</strong> @selectedReceta.Diagnostico</p>
+            }
+            @if (!string.IsNullOrEmpty(selectedReceta.Notas))
+            {
+                <p><strong>Notas:</strong> @selectedReceta.Notas</p>
+            }
+            @if (medicamentos.Count > 0)
+            {
+                <h3 style="margin-top: 20px; color: #1565C0;">Medicamentos</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f5f5f5;">
+                            <th style="border: 1px solid #ddd; padding: 8px;">Medicamento</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">Dosis</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">Frecuencia</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">Duración</th>
+                            <th style="border: 1px solid #ddd; padding: 8px;">Instrucciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var med in medicamentos)
+                        {
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">@med.Nombre</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">@med.Dosis</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">@med.Frecuencia</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">@med.Duracion</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">@med.Instrucciones</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+else if (recetas.Count == 0)
+{
+    <div class="text-center py-5">
+        <p class="text-muted fs-5">No hay recetas registradas</p>
+        <button class="btn-modern btn-modern-primary" @onclick="ShowNewForm">Agregar primera receta</button>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var receta in recetas)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm h-100" style="border-radius: 16px; cursor: pointer;" @onclick="() => SelectReceta(receta)">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="fw-bold mb-1">@receta.PacienteNombre</h6>
+                                <small class="text-muted">@receta.Fecha</small>
+                            </div>
+                            @if (!string.IsNullOrEmpty(receta.FotoUrl))
+                            {
+                                <span class="badge bg-info">Con foto</span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(receta.MedicoNombre))
+                        {
+                            <small class="text-muted d-block mt-1">Dr. @receta.MedicoNombre</small>
+                        }
+                        @if (!string.IsNullOrEmpty(receta.Diagnostico))
+                        {
+                            <p class="small mt-2 mb-0" style="color: #555;">@receta.Diagnostico</p>
+                        }
+                        <div class="d-flex gap-2 mt-3" @onclick:stopPropagation="true">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => EditReceta(receta)">Editar</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteReceta(receta)">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? PacienteId { get; set; }
+
+    private List<Receta> recetas = new();
+    private List<Paciente> pacientes = new();
+    private List<Medico> medicos = new();
+    private List<Medicamento> medicamentos = new();
+    private Receta formModel = new();
+    private Medicamento medFormModel = new();
+    private Receta? editingReceta;
+    private Receta? selectedReceta;
+    private ElementReference fileInput;
+    private bool isLoading = true;
+    private bool showForm = false;
+    private bool showMedForm = false;
+    private bool isSaving = false;
+    private string? errorMessage;
+    private string? filterPacienteNombre;
+
+    protected override async Task OnInitializedAsync()
+    {
+        pacientes = await PacienteService.GetAllAsync();
+        medicos = await MedicoService.GetAllAsync();
+        await LoadRecetas();
+    }
+
+    private async Task LoadRecetas()
+    {
+        isLoading = true;
+        if (!string.IsNullOrEmpty(PacienteId))
+        {
+            recetas = await RecetaService.GetByPacienteAsync(PacienteId);
+            filterPacienteNombre = pacientes.FirstOrDefault(p => p.Id == PacienteId)?.Nombre;
+        }
+        else
+        {
+            recetas = await RecetaService.GetAllAsync();
+        }
+        isLoading = false;
+    }
+
+    private void ClearFilter()
+    {
+        PacienteId = null;
+        filterPacienteNombre = null;
+        Navigation.NavigateTo("/recetas");
+        _ = LoadRecetas();
+    }
+
+    private void ShowNewForm()
+    {
+        formModel = new Receta { Fecha = DateTime.Now.ToString("yyyy-MM-dd") };
+        if (!string.IsNullOrEmpty(PacienteId))
+            formModel.PacienteId = PacienteId;
+        editingReceta = null;
+        showForm = true;
+    }
+
+    private void EditReceta(Receta receta)
+    {
+        editingReceta = receta;
+        formModel = new Receta
+        {
+            Id = receta.Id,
+            PacienteId = receta.PacienteId,
+            PacienteNombre = receta.PacienteNombre,
+            MedicoId = receta.MedicoId,
+            MedicoNombre = receta.MedicoNombre,
+            Fecha = receta.Fecha,
+            Diagnostico = receta.Diagnostico,
+            Notas = receta.Notas,
+            FotoUrl = receta.FotoUrl,
+            FotoPath = receta.FotoPath,
+            UserId = receta.UserId,
+            CreatedAt = receta.CreatedAt
+        };
+        showForm = true;
+    }
+
+    private async Task SaveReceta()
+    {
+        if (string.IsNullOrWhiteSpace(formModel.PacienteId))
+        {
+            errorMessage = "Selecciona un paciente";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(formModel.Fecha))
+        {
+            errorMessage = "La fecha es obligatoria";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = null;
+
+        formModel.PacienteNombre = pacientes.FirstOrDefault(p => p.Id == formModel.PacienteId)?.Nombre ?? "";
+        formModel.MedicoNombre = medicos.FirstOrDefault(m => m.Id == formModel.MedicoId)?.Nombre ?? "";
+
+        if (editingReceta != null)
+        {
+            var (success, error) = await RecetaService.UpdateAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+        }
+        else
+        {
+            var (success, error, id) = await RecetaService.AddAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+            formModel.Id = id ?? "";
+        }
+
+        isSaving = false;
+        CancelForm();
+        await LoadRecetas();
+    }
+
+    private async Task DeleteReceta(Receta receta)
+    {
+        await MedicamentoService.DeleteByRecetaAsync(receta.Id);
+        if (!string.IsNullOrEmpty(receta.FotoPath))
+            await RecetaService.DeleteFotoAsync(receta.FotoPath);
+        await RecetaService.DeleteAsync(receta.Id);
+        await LoadRecetas();
+    }
+
+    private async Task SelectReceta(Receta receta)
+    {
+        selectedReceta = receta;
+        medicamentos = await MedicamentoService.GetByRecetaAsync(receta.Id);
+    }
+
+    private async Task SaveMedicamento()
+    {
+        if (string.IsNullOrWhiteSpace(medFormModel.Nombre)) return;
+
+        medFormModel.RecetaId = selectedReceta!.Id;
+        await MedicamentoService.AddAsync(medFormModel);
+        medicamentos = await MedicamentoService.GetByRecetaAsync(selectedReceta.Id);
+        medFormModel = new();
+        showMedForm = false;
+    }
+
+    private async Task DeleteMedicamento(string id)
+    {
+        await MedicamentoService.DeleteAsync(id);
+        medicamentos = await MedicamentoService.GetByRecetaAsync(selectedReceta!.Id);
+    }
+
+    private async Task ExportPdf()
+    {
+        var fileName = $"Receta_{selectedReceta!.PacienteNombre}_{selectedReceta.Fecha}.pdf";
+        await JS.InvokeVoidAsync("exportToPdf", "receta-pdf", fileName);
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        editingReceta = null;
+        formModel = new();
+        errorMessage = null;
+    }
+}

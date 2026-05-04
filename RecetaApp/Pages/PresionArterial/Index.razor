@@ -1,0 +1,386 @@
+@page "/presion-arterial"
+@inject PresionArterialService PresionService
+@inject PacienteService PacienteService
+@inject NavigationManager Navigation
+
+<PageTitle>Presión Arterial - RecetaApp</PageTitle>
+
+@if (!string.IsNullOrEmpty(PacienteId))
+{
+    @* === Vista detalle: historial de un paciente === *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0" style="color: #1565C0;">Presión Arterial</h3>
+            @if (pacienteActual != null)
+            {
+                <div class="text-muted mt-1">Paciente: <strong>@pacienteActual.Nombre</strong></div>
+            }
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn-modern btn-modern-secondary" @onclick='() => Navigation.NavigateTo("/presion-arterial")'>
+                ← Todos
+            </button>
+            <button class="btn-modern btn-modern-primary" @onclick="() => ShowNewForm()">
+                + Nueva Medición
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        @if (showForm)
+        {
+            @RenderForm()
+        }
+
+        @if (pacienteMediciones.Count == 0 && !showForm)
+        {
+            <div class="text-center py-5">
+                <p class="text-muted fs-5">No hay mediciones registradas</p>
+                <button class="btn-modern btn-modern-primary" @onclick="() => ShowNewForm()">Registrar primera medición</button>
+            </div>
+        }
+        else if (pacienteMediciones.Count > 0)
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" style="border-radius: 12px; overflow: hidden;">
+                    <thead style="background: linear-gradient(135deg, #1565C0, #0D47A1); color: white;">
+                        <tr>
+                            <th class="px-3">Fecha</th>
+                            <th class="px-3">Hora</th>
+                            <th class="px-3 text-center">Sistólica</th>
+                            <th class="px-3 text-center">Diastólica</th>
+                            <th class="px-3 text-center">Pulso</th>
+                            <th class="px-3">Clasificación</th>
+                            <th class="px-3">Notas</th>
+                            <th class="px-3 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in pacienteMediciones)
+                        {
+                            <tr>
+                                <td class="px-3">@FormatFecha(m.Fecha)</td>
+                                <td class="px-3">@(string.IsNullOrEmpty(m.Hora) ? "—" : m.Hora)</td>
+                                <td class="px-3 text-center fw-bold">@m.Sistolica</td>
+                                <td class="px-3 text-center fw-bold">@m.Diastolica</td>
+                                <td class="px-3 text-center">@(m.Pulso > 0 ? m.Pulso.ToString() : "—")</td>
+                                <td class="px-3">
+                                    <span class="badge bg-@(m.ClasificacionColor == "orange" ? "warning" : m.ClasificacionColor)">
+                                        @m.Clasificacion
+                                    </span>
+                                </td>
+                                <td class="px-3 text-muted" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    @(string.IsNullOrEmpty(m.Notas) ? "—" : m.Notas)
+                                </td>
+                                <td class="px-3 text-center">
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => Edit(m)">Editar</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(m)">Eliminar</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+}
+else
+{
+    @* === Vista resumen: todos los pacientes === *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0" style="color: #1565C0;">Presión Arterial</h3>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (resumenPacientes.Count == 0)
+    {
+        <div class="text-center py-5">
+            <p class="text-muted fs-5">No hay mediciones registradas</p>
+            <p class="text-muted">Agrega mediciones desde la ficha de cada paciente</p>
+            <button class="btn-modern btn-modern-secondary" @onclick='() => Navigation.NavigateTo("/pacientes")'>Ir a Pacientes</button>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var r in resumenPacientes)
+            {
+                var accentClass = r.Ultima.ClasificacionColor switch
+                {
+                    "success" => "accent-success",
+                    "warning" => "accent-warning",
+                    "danger" => "accent-danger",
+                    _ => "accent-warning"
+                };
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="modern-card @accentClass" style="cursor: pointer;" @onclick='() => Navigation.NavigateTo($"/presion-arterial?pacienteId={r.PacienteId}")'>
+                        <div class="card-body">
+                            <div class="card-name">@r.PacienteNombre</div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <div>
+                                    <span style="font-size: 1.6rem; font-weight: 700; color: #1565C0;">@r.Ultima.Sistolica/@r.Ultima.Diastolica</span>
+                                    <span class="text-muted ms-1" style="font-size: 0.85rem;">mmHg</span>
+                                </div>
+                                <span class="card-badge card-badge-@(r.Ultima.ClasificacionColor == "orange" ? "warning" : r.Ultima.ClasificacionColor)">
+                                    @r.Ultima.Clasificacion
+                                </span>
+                            </div>
+                            <div class="card-subtitle mt-1">
+                                Última: @FormatFecha(r.Ultima.Fecha)
+                                @if (r.Ultima.Pulso > 0) { <span>· Pulso: @r.Ultima.Pulso</span> }
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-muted" style="font-size: 0.85rem;">@r.Total medición@(r.Total != 1 ? "es" : "")</span>
+                                <span class="text-primary" style="font-size: 0.85rem;">Ver historial →</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? PacienteId { get; set; }
+
+    private List<PresionArterial> mediciones = new();
+    private List<Paciente> pacientes = new();
+    private Paciente? pacienteActual;
+    private PresionArterial formModel = new();
+    private PresionArterial? editingItem;
+    private bool isLoading = true;
+    private bool showForm = false;
+    private bool isSaving = false;
+    private string? errorMessage;
+
+    private List<PresionArterial> pacienteMediciones =>
+        mediciones.Where(m => m.PacienteId == PacienteId).ToList();
+
+    private List<ResumenPaciente> resumenPacientes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        var loadMediciones = PresionService.GetAllAsync();
+        var loadPacientes = PacienteService.GetAllAsync();
+        mediciones = await loadMediciones;
+        pacientes = await loadPacientes;
+
+        if (!string.IsNullOrEmpty(PacienteId))
+            pacienteActual = pacientes.FirstOrDefault(p => p.Id == PacienteId);
+
+        resumenPacientes = mediciones
+            .GroupBy(m => m.PacienteId)
+            .Select(g => new ResumenPaciente
+            {
+                PacienteId = g.Key,
+                PacienteNombre = g.First().PacienteNombre,
+                Total = g.Count(),
+                Ultima = g.First()
+            })
+            .OrderBy(r => r.PacienteNombre)
+            .ToList();
+
+        isLoading = false;
+    }
+
+    private void ShowNewForm()
+    {
+        editingItem = null;
+        formModel = new PresionArterial
+        {
+            Fecha = DateTime.Now.ToString("yyyy-MM-dd"),
+            Hora = DateTime.Now.ToString("HH:mm"),
+            PacienteId = PacienteId ?? string.Empty
+        };
+        showForm = true;
+    }
+
+    private void Edit(PresionArterial item)
+    {
+        editingItem = item;
+        formModel = new PresionArterial
+        {
+            Id = item.Id,
+            PacienteId = item.PacienteId,
+            PacienteNombre = item.PacienteNombre,
+            Sistolica = item.Sistolica,
+            Diastolica = item.Diastolica,
+            Pulso = item.Pulso,
+            Fecha = item.Fecha,
+            Hora = item.Hora,
+            Notas = item.Notas,
+            UserId = item.UserId,
+            CreatedAt = item.CreatedAt
+        };
+        showForm = true;
+    }
+
+    private async Task Save()
+    {
+        var pacienteId = !string.IsNullOrEmpty(PacienteId) ? PacienteId : formModel.PacienteId;
+        if (string.IsNullOrWhiteSpace(pacienteId))
+        {
+            errorMessage = "Selecciona un paciente";
+            return;
+        }
+        formModel.PacienteId = pacienteId;
+
+        if (formModel.Sistolica <= 0 || formModel.Diastolica <= 0)
+        {
+            errorMessage = "Los valores de presión son obligatorios";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(formModel.Fecha))
+        {
+            errorMessage = "La fecha es obligatoria";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = null;
+
+        formModel.PacienteNombre = pacientes.FirstOrDefault(p => p.Id == formModel.PacienteId)?.Nombre ?? "";
+
+        if (editingItem != null)
+        {
+            var (success, error) = await PresionService.UpdateAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+        }
+        else
+        {
+            var (success, error, _) = await PresionService.AddAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+        }
+
+        isSaving = false;
+        CancelForm();
+        await LoadData();
+    }
+
+    private async Task Delete(PresionArterial item)
+    {
+        await PresionService.DeleteAsync(item.Id);
+        await LoadData();
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        editingItem = null;
+        formModel = new();
+        errorMessage = null;
+    }
+
+    private RenderFragment RenderForm() => __builder =>
+    {
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 16px;">
+            <div class="card-body p-4">
+                <h5 class="mb-3">@(editingItem != null ? "Editar" : "Nueva") Medición</h5>
+
+                @if (pacienteActual == null)
+                {
+                    <div class="form-group mb-3">
+                        <label class="form-label-modern">Paciente *</label>
+                        <select class="form-input" @bind="formModel.PacienteId">
+                            <option value="">Seleccionar paciente...</option>
+                            @foreach (var p in pacientes)
+                            {
+                                <option value="@p.Id">@p.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                }
+
+                <div class="form-grid-2 mb-3">
+                    <div class="form-group">
+                        <label class="form-label-modern">Fecha *</label>
+                        <input class="form-input" @bind="formModel.Fecha" placeholder="yyyy-mm-dd" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-modern">Hora</label>
+                        <input class="form-input" @bind="formModel.Hora" placeholder="HH:mm" />
+                    </div>
+                </div>
+
+                <div class="form-grid-2 mb-3">
+                    <div class="form-group">
+                        <label class="form-label-modern">Sistólica (mmHg) *</label>
+                        <input type="number" class="form-input" @bind="formModel.Sistolica" placeholder="120" min="50" max="300" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-modern">Diastólica (mmHg) *</label>
+                        <input type="number" class="form-input" @bind="formModel.Diastolica" placeholder="80" min="30" max="200" />
+                    </div>
+                </div>
+
+                <div class="form-grid-2 mb-3">
+                    <div class="form-group">
+                        <label class="form-label-modern">Pulso (lpm)</label>
+                        <input type="number" class="form-input" @bind="formModel.Pulso" placeholder="72" min="30" max="250" />
+                    </div>
+                    <div class="form-group"></div>
+                </div>
+
+                @if (formModel.Sistolica > 0 && formModel.Diastolica > 0)
+                {
+                    <div class="alert alert-@(formModel.ClasificacionColor == "orange" ? "warning" : formModel.ClasificacionColor) py-2 mb-3">
+                        <strong>Clasificación:</strong> @formModel.Clasificacion (@formModel.Sistolica/@formModel.Diastolica mmHg)
+                    </div>
+                }
+
+                <div class="form-group mb-3">
+                    <label class="form-label-modern">Notas</label>
+                    <textarea class="form-input form-textarea" @bind="formModel.Notas" placeholder="Observaciones (ayuno, después de ejercicio, etc.)"></textarea>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">@errorMessage</div>
+                }
+
+                <div class="d-flex gap-2">
+                    <button class="btn-modern btn-modern-primary" @onclick="Save" disabled="@isSaving">
+                        @if (isSaving) { <div class="btn-spinner"></div> }
+                        Guardar
+                    </button>
+                    <button class="btn-modern btn-modern-secondary" @onclick="CancelForm">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    };
+
+    private static string FormatFecha(string fecha)
+    {
+        if (DateTime.TryParse(fecha, out var dt))
+            return dt.ToString("dd/MM/yyyy");
+        return fecha;
+    }
+
+    private class ResumenPaciente
+    {
+        public string PacienteId { get; set; } = string.Empty;
+        public string PacienteNombre { get; set; } = string.Empty;
+        public int Total { get; set; }
+        public PresionArterial Ultima { get; set; } = new();
+    }
+}

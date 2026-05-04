@@ -14,5 +14,6 @@ builder.Services.AddScoped<MedicoService>();
 builder.Services.AddScoped<RecetaService>();
 builder.Services.AddScoped<MedicamentoService>();
 builder.Services.AddScoped<CatalogoMedicamentoService>();
+builder.Services.AddScoped<PresionArterialService>();
 
 await builder.Build().RunAsync();

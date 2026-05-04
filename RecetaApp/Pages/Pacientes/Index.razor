@@ -92,6 +92,7 @@ else
                         <div class="card-actions">
                             <button class="btn btn-sm btn-outline-primary" @onclick="() => EditPaciente(paciente)">Editar</button>
                             <button class="btn btn-sm btn-outline-info" @onclick='() => Navigation.NavigateTo($"/recetas?pacienteId={paciente.Id}")'>Recetas</button>
+                            <button class="btn btn-sm btn-outline-success" @onclick='() => Navigation.NavigateTo($"/presion-arterial?pacienteId={paciente.Id}")'>Presión</button>
                             <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePaciente(paciente)">Eliminar</button>
                         </div>
                     </div>

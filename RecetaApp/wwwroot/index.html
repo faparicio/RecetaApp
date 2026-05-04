@@ -37,6 +37,8 @@
             getAuth,
             signInWithEmailAndPassword,
             createUserWithEmailAndPassword,
+            signInWithPopup,
+            GoogleAuthProvider,
             signOut,
             onAuthStateChanged
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -55,30 +57,30 @@
             orderBy,
             limit
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import {
-            getStorage,
-            ref,
-            uploadBytes,
-            getDownloadURL,
-            deleteObject
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-
-        // TODO: Reemplazar con la configuración de tu proyecto Firebase
         const firebaseConfig = {
-            apiKey: "TU_API_KEY",
-            authDomain: "TU_PROYECTO.firebaseapp.com",
-            projectId: "TU_PROYECTO",
-            storageBucket: "TU_PROYECTO.firebasestorage.app",
-            messagingSenderId: "TU_SENDER_ID",
-            appId: "TU_APP_ID"
+            apiKey: "AIzaSyA1O7curXlXt29gMQv-AEJAL5XiNRVZ-g0",
+            authDomain: "recetaapp-ab3f0.firebaseapp.com",
+            projectId: "recetaapp-ab3f0",
+            storageBucket: "recetaapp-ab3f0.firebasestorage.app",
+            messagingSenderId: "627761296258",
+            appId: "1:627761296258:web:1b551ea598b5006029959b",
+            measurementId: "G-WHXHBZZMW7"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const storage = getStorage(app);
+        const googleProvider = new GoogleAuthProvider();
 
         window.firebaseAuth = {
+            signInWithGoogle: async () => {
+                try {
+                    const result = await signInWithPopup(auth, googleProvider);
+                    return { success: true, user: { uid: result.user.uid, email: result.user.email } };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
             signIn: async (email, password) => {
                 try {
                     const result = await signInWithEmailAndPassword(auth, email, password);
@@ -213,57 +215,32 @@
             }
         };
 
-        window.firebaseStorage = {
-            uploadFile: async (path, fileInputElement) => {
-                try {
-                    const file = fileInputElement.files[0];
-                    if (!file) {
-                        return { success: false, error: "No se seleccionó archivo" };
-                    }
-
-                    const storageRef = ref(storage, path);
-                    const snapshot = await uploadBytes(storageRef, file);
-                    const downloadUrl = await getDownloadURL(snapshot.ref);
-
-                    return {
-                        success: true,
-                        url: downloadUrl,
-                        fileName: file.name,
-                        fileSize: file.size,
-                        fileType: file.type
-                    };
-                } catch (error) {
-                    return { success: false, error: error.message };
-                }
-            },
-            deleteFile: async (path) => {
-                try {
-                    const storageRef = ref(storage, path);
-                    await deleteObject(storageRef);
-                    return { success: true };
-                } catch (error) {
-                    return { success: false, error: error.message };
-                }
-            }
-        };
     </script>
 
     <!-- html2pdf para exportar a PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
-        window.exportToPdf = async (elementId, fileName) => {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-
-            const opt = {
-                margin: [5, 10, 5, 10],
-                filename: fileName || 'receta.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
-            };
-
-            await html2pdf().set(opt).from(element).save();
+        window.exportToPdf = async (htmlContent, fileName) => {
+            try {
+                await html2pdf()
+                    .set({
+                        margin: [5, 10, 5, 10],
+                        filename: fileName || 'receta.pdf',
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2 },
+                        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+                    })
+                    .from(htmlContent, 'string')
+                    .save();
+            } catch (e) {
+                console.error('PDF export error:', e);
+                const blob = new Blob(
+                    ['<html><head><meta charset="utf-8"></head><body>' + htmlContent + '</body></html>'],
+                    { type: 'text/html' }
+                );
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+            }
         };
     </script>
 

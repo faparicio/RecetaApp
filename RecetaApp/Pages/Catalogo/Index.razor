@@ -1,0 +1,191 @@
+@page "/catalogo"
+@inject CatalogoMedicamentoService CatalogoService
+
+<PageTitle>Catálogo de Medicamentos - RecetaApp</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0" style="color: #1565C0;">Catálogo de Medicamentos</h3>
+    <button class="btn-modern btn-modern-primary" @onclick="() => showForm = true">
+        + Nuevo Medicamento
+    </button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (catalogoItems.Count == 0 && !showForm)
+{
+    <div class="text-center py-5">
+        <p class="text-muted fs-5">No hay medicamentos en el catálogo</p>
+        <p class="text-muted small">Agrega medicamentos frecuentes para reutilizarlos al crear recetas</p>
+        <button class="btn-modern btn-modern-primary" @onclick="() => showForm = true">Agregar primer medicamento</button>
+    </div>
+}
+else
+{
+    @if (showForm)
+    {
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 16px;">
+            <div class="card-body p-4">
+                <h5 class="mb-3">@(editingItem != null ? "Editar" : "Nuevo") Medicamento</h5>
+
+                <div class="form-grid-2 mb-3">
+                    <div class="form-group">
+                        <label class="form-label-modern">Nombre comercial *</label>
+                        <input class="form-input" @bind="formModel.Nombre" placeholder="Ej: Aspirina" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-modern">Sustancia activa</label>
+                        <input class="form-input" @bind="formModel.SustanciaActiva" placeholder="Ej: Ácido acetilsalicílico" />
+                    </div>
+                </div>
+
+                <div class="form-grid-2 mb-3">
+                    <div class="form-group">
+                        <label class="form-label-modern">Presentación</label>
+                        <input class="form-input" @bind="formModel.Presentacion" placeholder="Ej: Tabletas 500mg, Jarabe 120ml" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-modern">Instrucciones por defecto</label>
+                        <input class="form-input" @bind="formModel.Instrucciones" placeholder="Ej: Tomar con alimentos" />
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">@errorMessage</div>
+                }
+
+                <div class="d-flex gap-2">
+                    <button class="btn-modern btn-modern-primary" @onclick="SaveItem" disabled="@isSaving">
+                        @if (isSaving) { <div class="btn-spinner"></div> }
+                        Guardar
+                    </button>
+                    <button class="btn-modern btn-modern-secondary" @onclick="CancelForm">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="mb-3">
+        <input class="form-input" @bind="searchText" @bind:event="oninput" placeholder="Buscar medicamento..." />
+    </div>
+
+    <div class="row g-4">
+        @foreach (var item in FilteredItems)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="modern-card accent-warning">
+                    <div class="card-body">
+                        <div class="card-name">@item.Nombre</div>
+                        @if (!string.IsNullOrEmpty(item.SustanciaActiva))
+                        {
+                            <div class="card-subtitle">@item.SustanciaActiva</div>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Presentacion))
+                        {
+                            <span class="card-badge card-badge-secondary">@item.Presentacion</span>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Instrucciones))
+                        {
+                            <p class="card-note">@item.Instrucciones</p>
+                        }
+                        <div class="card-actions">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => EditItem(item)">Editar</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteItem(item)">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<CatalogoMedicamento> catalogoItems = new();
+    private CatalogoMedicamento formModel = new();
+    private CatalogoMedicamento? editingItem;
+    private bool isLoading = true;
+    private bool showForm = false;
+    private bool isSaving = false;
+    private string? errorMessage;
+    private string searchText = string.Empty;
+
+    private IEnumerable<CatalogoMedicamento> FilteredItems =>
+        string.IsNullOrWhiteSpace(searchText)
+            ? catalogoItems
+            : catalogoItems.Where(i => i.Nombre.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                || i.SustanciaActiva.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        catalogoItems = await CatalogoService.GetAllAsync();
+        isLoading = false;
+    }
+
+    private void EditItem(CatalogoMedicamento item)
+    {
+        editingItem = item;
+        formModel = new CatalogoMedicamento
+        {
+            Id = item.Id,
+            Nombre = item.Nombre,
+            SustanciaActiva = item.SustanciaActiva,
+            Presentacion = item.Presentacion,
+            Instrucciones = item.Instrucciones,
+            UserId = item.UserId,
+            CreatedAt = item.CreatedAt
+        };
+        showForm = true;
+    }
+
+    private async Task SaveItem()
+    {
+        if (string.IsNullOrWhiteSpace(formModel.Nombre))
+        {
+            errorMessage = "El nombre es obligatorio";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = null;
+
+        if (editingItem != null)
+        {
+            var (success, error) = await CatalogoService.UpdateAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+        }
+        else
+        {
+            var (success, error, _) = await CatalogoService.AddAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+        }
+
+        isSaving = false;
+        CancelForm();
+        await LoadData();
+    }
+
+    private async Task DeleteItem(CatalogoMedicamento item)
+    {
+        await CatalogoService.DeleteAsync(item.Id);
+        await LoadData();
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        editingItem = null;
+        formModel = new();
+        errorMessage = null;
+    }
+}

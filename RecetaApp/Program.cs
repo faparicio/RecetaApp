@@ -13,5 +13,6 @@ builder.Services.AddScoped<PacienteService>();
 builder.Services.AddScoped<MedicoService>();
 builder.Services.AddScoped<RecetaService>();
 builder.Services.AddScoped<MedicamentoService>();
+builder.Services.AddScoped<CatalogoMedicamentoService>();
 
 await builder.Build().RunAsync();

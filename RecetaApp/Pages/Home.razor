@@ -4,106 +4,167 @@
 <PageTitle>Inicio - RecetaApp</PageTitle>
 
 <div class="text-center mb-5">
-    <h2 class="fw-bold mb-2" style="color: #1565C0;">RecetaApp</h2>
-    <p class="text-muted">Tu historial de recetas médicas, siempre contigo</p>
+    <div class="home-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="white" viewBox="0 0 16 16">
+            <path d="M8 4.143A1.071 1.071 0 1 0 8 2a1.071 1.071 0 0 0 0 2.143Zm-4.668 1.47 3.24.316v2.5l-.323 4.585A.383.383 0 0 0 6.632 13h.694a.383.383 0 0 0 .382-.334L7.945 9.5h.11l.237 3.166a.383.383 0 0 0 .382.334h.694a.383.383 0 0 0 .382-.433l-.323-4.585v-2.5l3.24-.316a.38.38 0 0 0 .34-.39v-.124a.38.38 0 0 0-.419-.377l-3.16.316H6.58l-3.161-.316a.38.38 0 0 0-.42.377v.124c0 .194.146.36.34.39Z"/>
+            <path fill-rule="evenodd" d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L1.01 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l1.313 7h8.17l1.313-7H3.102z"/>
+        </svg>
+    </div>
+    <h2 class="fw-bold mb-2" style="color: #1565C0; font-size: 2rem;">RecetaApp</h2>
+    <p class="text-muted" style="font-size: 1.05rem;">Tu historial de recetas médicas, siempre contigo</p>
 </div>
 
 <div class="row g-4 justify-content-center">
-    <div class="col-lg-4 col-md-6">
-        <div class="option-card" @onclick='() => Navigation.NavigateTo("/recetas")'>
-            <div class="option-icon bg-gradient-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="white" viewBox="0 0 16 16">
+    <div class="col-lg-3 col-md-6 col-6">
+        <div class="home-card" @onclick='() => Navigation.NavigateTo("/recetas")'>
+            <div class="home-card-icon bg-gradient-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" fill="white" viewBox="0 0 16 16">
                     <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z"/>
                     <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/>
                 </svg>
             </div>
-            <div class="option-content">
-                <h5 class="option-title">Recetas</h5>
-                <p class="option-desc">Ver y registrar recetas médicas</p>
-            </div>
-            <div class="option-arrow">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
-                </svg>
-            </div>
+            <h5 class="home-card-title">Recetas</h5>
+            <p class="home-card-desc">Ver y registrar recetas médicas</p>
         </div>
     </div>
 
-    <div class="col-lg-4 col-md-6">
-        <div class="option-card" @onclick='() => Navigation.NavigateTo("/pacientes")'>
-            <div class="option-icon bg-gradient-success">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="white" viewBox="0 0 16 16">
+    <div class="col-lg-3 col-md-6 col-6">
+        <div class="home-card" @onclick='() => Navigation.NavigateTo("/pacientes")'>
+            <div class="home-card-icon bg-gradient-success">
+                <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" fill="white" viewBox="0 0 16 16">
                     <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8Zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002a.274.274 0 0 1-.014.002H7.022ZM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM6.936 9.28a5.88 5.88 0 0 0-1.23-.247A7.35 7.35 0 0 0 5 9c-4 0-5 3-5 4 0 .667.333 1 1 1h4.216A2.238 2.238 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816ZM4.92 10A5.493 5.493 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275ZM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/>
                 </svg>
             </div>
-            <div class="option-content">
-                <h5 class="option-title">Pacientes</h5>
-                <p class="option-desc">Perfiles familiares</p>
-            </div>
-            <div class="option-arrow">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
-                </svg>
-            </div>
+            <h5 class="home-card-title">Pacientes</h5>
+            <p class="home-card-desc">Perfiles familiares</p>
         </div>
     </div>
 
-    <div class="col-lg-4 col-md-6">
-        <div class="option-card" @onclick='() => Navigation.NavigateTo("/medicos")'>
-            <div class="option-icon bg-gradient-info">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="white" viewBox="0 0 16 16">
+    <div class="col-lg-3 col-md-6 col-6">
+        <div class="home-card" @onclick='() => Navigation.NavigateTo("/medicos")'>
+            <div class="home-card-icon bg-gradient-info">
+                <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" fill="white" viewBox="0 0 16 16">
                     <path d="M6.5 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
                     <path d="M4.5 0A2.5 2.5 0 0 0 2 2.5V14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2.5A2.5 2.5 0 0 0 11.5 0h-7zM3 2.5A1.5 1.5 0 0 1 4.5 1h7A1.5 1.5 0 0 1 13 2.5v10.795a4.2 4.2 0 0 0-2-.654v-.529A1.5 1.5 0 0 0 9.5 10.5h-3A1.5 1.5 0 0 0 5 12.112v.529a4.2 4.2 0 0 0-2 .654V2.5z"/>
                 </svg>
             </div>
-            <div class="option-content">
-                <h5 class="option-title">Médicos</h5>
-                <p class="option-desc">Directorio de médicos</p>
-            </div>
-            <div class="option-arrow">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+            <h5 class="home-card-title">Médicos</h5>
+            <p class="home-card-desc">Directorio de médicos</p>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 col-6">
+        <div class="home-card" @onclick='() => Navigation.NavigateTo("/catalogo")'>
+            <div class="home-card-icon bg-gradient-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" fill="white" viewBox="0 0 16 16">
+                    <path d="M1.828 8.9 8.9 1.827a4 4 0 1 1 5.657 5.657l-7.07 7.071A4 4 0 1 1 1.827 8.9Zm9.128.771 2.893-2.893a3 3 0 1 0-4.243-4.242L6.713 5.429z"/>
                 </svg>
             </div>
+            <h5 class="home-card-title">Medicamentos</h5>
+            <p class="home-card-desc">Catálogo frecuente</p>
         </div>
     </div>
 </div>
 
 <style>
-    .option-card {
-        display: flex;
-        align-items: center;
-        background: white;
-        border-radius: 16px;
-        padding: 20px 24px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-        border: 1px solid rgba(0, 0, 0, 0.05);
-    }
-
-    .option-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-    }
-
-    .option-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 14px;
+    .home-logo {
+        width: 80px;
+        height: 80px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, #1565C0 0%, #00897B 100%);
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-shrink: 0;
+        margin: 0 auto 1.2rem;
+        box-shadow: 0 8px 24px rgba(21, 101, 192, 0.3);
     }
 
-    .bg-gradient-primary { background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%); }
-    .bg-gradient-success { background: linear-gradient(135deg, #00897B 0%, #00796B 100%); }
-    .bg-gradient-info { background: linear-gradient(135deg, #42A5F5 0%, #1E88E5 100%); }
+    .home-card {
+        background: white;
+        border-radius: 20px;
+        padding: 28px 16px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        text-align: center;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
 
-    .option-content { flex: 1; margin-left: 20px; }
-    .option-title { font-weight: 600; color: #2d3748; margin-bottom: 4px; font-size: 1.1rem; }
-    .option-desc { color: #718096; margin: 0; font-size: 0.9rem; }
-    .option-arrow { color: #cbd5e0; transition: all 0.3s ease; }
-    .option-card:hover .option-arrow { color: #00897B; transform: translateX(4px); }
+    .home-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .home-card:active {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .home-card-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        transition: transform 0.3s ease;
+    }
+
+    .home-card:hover .home-card-icon {
+        transform: scale(1.08);
+    }
+
+    .home-card-title {
+        font-weight: 700;
+        color: #1a2332;
+        margin-bottom: 6px;
+        font-size: 1.1rem;
+    }
+
+    .home-card-desc {
+        color: #8492a6;
+        margin: 0;
+        font-size: 0.85rem;
+        line-height: 1.3;
+    }
+
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+        box-shadow: 0 6px 20px rgba(21, 101, 192, 0.35);
+    }
+    .bg-gradient-success {
+        background: linear-gradient(135deg, #00897B 0%, #00695C 100%);
+        box-shadow: 0 6px 20px rgba(0, 137, 123, 0.35);
+    }
+    .bg-gradient-info {
+        background: linear-gradient(135deg, #42A5F5 0%, #1E88E5 100%);
+        box-shadow: 0 6px 20px rgba(66, 165, 245, 0.35);
+    }
+    .bg-gradient-warning {
+        background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+        box-shadow: 0 6px 20px rgba(255, 152, 0, 0.35);
+    }
+
+    @@media (max-width: 575px) {
+        .home-card {
+            padding: 20px 12px;
+        }
+        .home-card-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+        }
+        .home-card-icon svg {
+            width: 36px;
+            height: 36px;
+        }
+        .home-card-title {
+            font-size: 1rem;
+        }
+    }
 </style>

@@ -58,8 +58,13 @@ else
                 </div>
 
                 <div class="form-group mb-3">
+                    <label class="form-label-modern">Ubicación del consultorio</label>
+                    <input class="form-input" @bind="formModel.Ubicacion" placeholder="Dirección o coordenadas del consultorio" />
+                </div>
+
+                <div class="form-group mb-3">
                     <label class="form-label-modern">Notas</label>
-                    <textarea class="form-input form-textarea" @bind="formModel.Notas" placeholder="Dirección, horarios, etc."></textarea>
+                    <textarea class="form-input form-textarea" @bind="formModel.Notas" placeholder="Horarios, observaciones, etc."></textarea>
                 </div>
 
                 @if (!string.IsNullOrEmpty(errorMessage))
@@ -78,30 +83,36 @@ else
         </div>
     }
 
-    <div class="row g-3">
+    <div class="row g-4">
         @foreach (var medico in medicos)
         {
             <div class="col-md-6 col-lg-4">
-                <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
-                    <div class="card-body p-4">
-                        <h5 class="fw-bold mb-1">@medico.Nombre</h5>
+                <div class="modern-card accent-info">
+                    <div class="card-body">
+                        <div class="card-name">@medico.Nombre</div>
                         @if (!string.IsNullOrEmpty(medico.Especialidad))
                         {
-                            <span class="badge bg-primary mb-2">@medico.Especialidad</span>
+                            <span class="card-badge card-badge-primary">@medico.Especialidad</span>
                         }
                         @if (!string.IsNullOrEmpty(medico.CedulaProfesional))
                         {
-                            <small class="text-muted d-block">Cédula: @medico.CedulaProfesional</small>
+                            <div class="card-subtitle" style="margin-top: 8px;">Cédula: @medico.CedulaProfesional</div>
                         }
                         @if (!string.IsNullOrEmpty(medico.Telefono))
                         {
-                            <small class="text-muted d-block">Tel: @medico.Telefono</small>
+                            <div class="card-subtitle">Tel: @medico.Telefono</div>
+                        }
+                        @if (!string.IsNullOrEmpty(medico.Ubicacion))
+                        {
+                            <a href="@($"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString(medico.Ubicacion)}")" target="_blank" rel="noopener" class="text-decoration-none d-block" style="margin-top: 6px;">
+                                <span class="card-badge card-badge-success">&#128205; @medico.Ubicacion</span>
+                            </a>
                         }
                         @if (!string.IsNullOrEmpty(medico.Notas))
                         {
-                            <p class="text-muted small mt-2 mb-0">@medico.Notas</p>
+                            <p class="card-note">@medico.Notas</p>
                         }
-                        <div class="d-flex gap-2 mt-3">
+                        <div class="card-actions">
                             <button class="btn btn-sm btn-outline-primary" @onclick="() => EditMedico(medico)">Editar</button>
                             <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteMedico(medico)">Eliminar</button>
                         </div>
@@ -144,6 +155,7 @@ else
             CedulaProfesional = medico.CedulaProfesional,
             Telefono = medico.Telefono,
             Email = medico.Email,
+            Ubicacion = medico.Ubicacion,
             Notas = medico.Notas,
             UserId = medico.UserId,
             CreatedAt = medico.CreatedAt

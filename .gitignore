@@ -1,0 +1,23 @@
+## .NET build artifacts
+bin/
+obj/
+
+## Firebase
+.firebase/
+
+## User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## VS Code
+.vscode/
+
+## Visual Studio
+.vs/
+
+## OS files
+Thumbs.db
+Desktop.ini
+.DS_Store

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using RecetaApp.Models;
 using System.Text.Json;
@@ -21,8 +20,7 @@ public class RecetaService
     {
         var result = await _js.InvokeAsync<JsonElement>("firestore.query", Collection, new
         {
-            filters = new[] { new { field = "userId", op = "==", value = _auth.CurrentUser?.Uid } },
-            orderBy = new[] { new { field = "fecha", direction = "desc" } }
+            filters = new[] { new { field = "userId", op = "==", value = _auth.CurrentUser?.Uid } }
         });
 
         if (!result.GetProperty("success").GetBoolean()) return new();
@@ -32,7 +30,7 @@ public class RecetaService
         {
             list.Add(MapFromJson(item));
         }
-        return list;
+        return list.OrderByDescending(r => r.Fecha).ToList();
     }
 
     public async Task<List<Receta>> GetByPacienteAsync(string pacienteId)
@@ -43,8 +41,7 @@ public class RecetaService
             {
                 new { field = "userId", op = "==", value = _auth.CurrentUser?.Uid },
                 new { field = "pacienteId", op = "==", value = pacienteId }
-            },
-            orderBy = new[] { new { field = "fecha", direction = "desc" } }
+            }
         });
 
         if (!result.GetProperty("success").GetBoolean()) return new();
@@ -54,7 +51,7 @@ public class RecetaService
         {
             list.Add(MapFromJson(item));
         }
-        return list;
+        return list.OrderByDescending(r => r.Fecha).ToList();
     }
 
     public async Task<Receta?> GetByIdAsync(string id)
@@ -91,25 +88,6 @@ public class RecetaService
         return (false, result.GetProperty("error").GetString());
     }
 
-    public async Task<(bool Success, string? Url, string? Error)> UploadFotoAsync(string recetaId, ElementReference fileInput)
-    {
-        var path = $"recetas/{_auth.CurrentUser?.Uid}/{recetaId}/{DateTime.UtcNow.Ticks}";
-        var result = await _js.InvokeAsync<JsonElement>("firebaseStorage.uploadFile", path, fileInput);
-
-        if (result.GetProperty("success").GetBoolean())
-            return (true, result.GetProperty("url").GetString(), null);
-        return (false, null, result.GetProperty("error").GetString());
-    }
-
-    public async Task<(bool Success, string? Error)> DeleteFotoAsync(string path)
-    {
-        if (string.IsNullOrEmpty(path)) return (true, null);
-        var result = await _js.InvokeAsync<JsonElement>("firebaseStorage.deleteFile", path);
-        if (result.GetProperty("success").GetBoolean())
-            return (true, null);
-        return (false, result.GetProperty("error").GetString());
-    }
-
     private static Receta MapFromJson(JsonElement el)
     {
         return new Receta
@@ -120,10 +98,11 @@ public class RecetaService
             MedicoId = el.TryGetProperty("medicoId", out var mi) ? mi.GetString() ?? "" : "",
             MedicoNombre = el.TryGetProperty("medicoNombre", out var mn) ? mn.GetString() ?? "" : "",
             Fecha = el.TryGetProperty("fecha", out var f) ? f.GetString() ?? "" : "",
+            Peso = el.TryGetProperty("peso", out var p) ? p.GetString() ?? "" : "",
+            Talla = el.TryGetProperty("talla", out var t) ? t.GetString() ?? "" : "",
             Diagnostico = el.TryGetProperty("diagnostico", out var d) ? d.GetString() ?? "" : "",
+            EdadPaciente = el.TryGetProperty("edadPaciente", out var ep) ? ep.GetString() ?? "" : "",
             Notas = el.TryGetProperty("notas", out var n) ? n.GetString() ?? "" : "",
-            FotoUrl = el.TryGetProperty("fotoUrl", out var fu) ? fu.GetString() ?? "" : "",
-            FotoPath = el.TryGetProperty("fotoPath", out var fp) ? fp.GetString() ?? "" : "",
             UserId = el.TryGetProperty("userId", out var u) ? u.GetString() ?? "" : "",
             CreatedAt = el.TryGetProperty("createdAt", out var c) ? c.GetString() ?? "" : ""
         };
@@ -138,10 +117,11 @@ public class RecetaService
             ["medicoId"] = r.MedicoId,
             ["medicoNombre"] = r.MedicoNombre,
             ["fecha"] = r.Fecha,
+            ["peso"] = r.Peso,
+            ["talla"] = r.Talla,
             ["diagnostico"] = r.Diagnostico,
+            ["edadPaciente"] = r.EdadPaciente,
             ["notas"] = r.Notas,
-            ["fotoUrl"] = r.FotoUrl,
-            ["fotoPath"] = r.FotoPath,
             ["userId"] = r.UserId,
             ["createdAt"] = r.CreatedAt
         };

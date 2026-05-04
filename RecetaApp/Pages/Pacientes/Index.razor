@@ -69,26 +69,27 @@ else
         </div>
     }
 
-    <div class="row g-3">
+    <div class="row g-4">
         @foreach (var paciente in pacientes)
         {
             <div class="col-md-6 col-lg-4">
-                <div class="card border-0 shadow-sm h-100" style="border-radius: 16px;">
-                    <div class="card-body p-4">
-                        <h5 class="fw-bold mb-1">@paciente.Nombre</h5>
+                <div class="modern-card accent-success">
+                    <div class="card-body">
+                        <div class="card-name">@paciente.Nombre</div>
                         @if (!string.IsNullOrEmpty(paciente.FechaNacimiento))
                         {
-                            <small class="text-muted d-block mb-2">Nacimiento: @paciente.FechaNacimiento</small>
+                            var edadTexto = CalcularEdadTexto(paciente.FechaNacimiento);
+                            <div class="card-subtitle">@(edadTexto ?? paciente.FechaNacimiento)</div>
                         }
                         @if (!string.IsNullOrEmpty(paciente.Alergias))
                         {
-                            <span class="badge bg-warning text-dark mb-2">Alergias: @paciente.Alergias</span>
+                            <span class="card-badge card-badge-warning">Alergias: @paciente.Alergias</span>
                         }
                         @if (!string.IsNullOrEmpty(paciente.Notas))
                         {
-                            <p class="text-muted small mb-2">@paciente.Notas</p>
+                            <p class="card-note">@paciente.Notas</p>
                         }
-                        <div class="d-flex gap-2 mt-3">
+                        <div class="card-actions">
                             <button class="btn btn-sm btn-outline-primary" @onclick="() => EditPaciente(paciente)">Editar</button>
                             <button class="btn btn-sm btn-outline-info" @onclick='() => Navigation.NavigateTo($"/recetas?pacienteId={paciente.Id}")'>Recetas</button>
                             <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePaciente(paciente)">Eliminar</button>
@@ -176,5 +177,20 @@ else
         editingPaciente = null;
         formModel = new();
         errorMessage = null;
+    }
+
+    private string? CalcularEdadTexto(string fechaNacimiento)
+    {
+        if (!DateTime.TryParse(fechaNacimiento, out var nacimiento)) return null;
+
+        var hoy = DateTime.Today;
+        int años = hoy.Year - nacimiento.Year;
+        int meses = hoy.Month - nacimiento.Month;
+        if (hoy.Day < nacimiento.Day) meses--;
+        if (meses < 0) { años--; meses += 12; }
+
+        if (años > 0 && meses > 0) return $"{años} año{(años > 1 ? "s" : "")} {meses} mes{(meses > 1 ? "es" : "")}";
+        if (años > 0) return $"{años} año{(años > 1 ? "s" : "")}";
+        return $"{meses} mes{(meses > 1 ? "es" : "")}";
     }
 }

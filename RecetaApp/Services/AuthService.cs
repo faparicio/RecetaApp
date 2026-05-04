@@ -88,6 +88,19 @@ public class AuthService : IAsyncDisposable
         }
     }
 
+    public async Task<AuthResult> SignInWithGoogleAsync()
+    {
+        try
+        {
+            var result = await _jsRuntime.InvokeAsync<JsonElement>("firebaseAuth.signInWithGoogle");
+            return ParseAuthResult(result);
+        }
+        catch (Exception ex)
+        {
+            return new AuthResult { Success = false, Error = ex.Message };
+        }
+    }
+
     public async Task<AuthResult> SignOutAsync()
     {
         try

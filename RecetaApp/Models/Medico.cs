@@ -8,6 +8,7 @@ public class Medico
     public string CedulaProfesional { get; set; } = string.Empty;
     public string Telefono { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string Ubicacion { get; set; } = string.Empty;
     public string Notas { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
     public string CreatedAt { get; set; } = string.Empty;

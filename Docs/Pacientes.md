@@ -2,7 +2,7 @@
 
 **Archivo:** `Pages/Pacientes/Index.razor`  
 **Ruta:** `/pacientes`  
-**Versión:** 26.04.30.01
+**Versión:** 26.05.04.01
 
 ## Descripcion
 
@@ -17,7 +17,9 @@ CRUD de pacientes (familiares). Permite registrar nombre, fecha de nacimiento, a
   - Alergias
   - Notas (textarea)
 - **Eliminar:** Boton directo sin confirmacion
-- **Navegacion:** Boton "Recetas" en cada tarjeta que navega a `/recetas?pacienteId={id}`
+- **Navegacion:**
+  - Boton "Recetas" navega a `/recetas?pacienteId={id}`
+  - Boton "Presion" navega a `/presion-arterial?pacienteId={id}`
 
 ## Calculo de edad
 
@@ -31,4 +33,4 @@ Metodo `CalcularEdadTexto()` calcula edad con anos y meses, con pluralizacion en
 ## Dependencias
 
 - `PacienteService` - CRUD Firestore coleccion "pacientes"
-- `NavigationManager` - para navegar a recetas filtradas
+- `NavigationManager` - para navegar a recetas y presion arterial filtradas

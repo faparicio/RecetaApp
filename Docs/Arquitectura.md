@@ -1,6 +1,6 @@
 # Arquitectura General - RecetaApp
 
-**Versión:** 26.04.30.01
+**Versión:** 26.05.04.01
 
 ## Stack Tecnologico
 
@@ -20,6 +20,7 @@ Cada entidad tiene un servicio que inyecta `IJSRuntime` para interoperar con las
 - `RecetaService` - CRUD recetas
 - `MedicamentoService` - CRUD medicamentos
 - `CatalogoMedicamentoService` - CRUD catalogo de medicamentos
+- `PresionArterialService` - CRUD mediciones de presion arterial
 
 Patron comun: `GetAllAsync()`, `AddAsync()`, `UpdateAsync()`, `DeleteAsync()`  
 Retorno de operaciones: `(bool Success, string? Error)` o `(bool, string?, string? Id)`
@@ -35,6 +36,7 @@ Todas las entidades incluyen campo `UserId`. Las consultas filtran por userId pa
 - `recetas` - Recetas medicas
 - `medicamentos` - Medicamentos por receta (relacion via RecetaId)
 - `catalogoMedicamentos` - Catalogo de medicamentos frecuentes
+- `presionArterial` - Mediciones de presion arterial por paciente
 
 ## PWA
 

@@ -1,7 +1,7 @@
 # NavMenu - Menu de Navegacion
 
 **Archivo:** `Layout/NavMenu.razor`  
-**Versión:** 26.04.30.01
+**Versión:** 26.05.04.01
 
 ## Descripcion
 
@@ -16,6 +16,7 @@ Menu lateral de navegacion con branding y links a todas las secciones.
   - Pacientes (`/pacientes`) - icono personas
   - Medicos (`/medicos`) - icono credencial
   - Medicamentos (`/catalogo`) - icono capsula
+  - Presion Arterial (`/presion-arterial`) - icono pulso cardiaco
 
 ## Version dinamica
 

@@ -160,6 +160,7 @@ else if (showForm)
                     <table class="table table-hover mb-0">
                         <thead>
                             <tr>
+                                <th style="width: 40px;">#</th>
                                 <th>Medicamento</th>
                                 <th>Dosis</th>
                                 <th>Frecuencia</th>
@@ -174,6 +175,7 @@ else if (showForm)
                                 var idx = i;
                                 var med = formMedicamentos[idx];
                                 <tr>
+                                    <td class="text-muted">@(idx + 1)</td>
                                     <td class="fw-bold">@med.Nombre</td>
                                     <td>@med.Dosis</td>
                                     <td>@med.Frecuencia</td>
@@ -338,6 +340,7 @@ else if (selectedReceta != null)
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                <th style="width: 40px;">#</th>
                                 <th>Medicamento</th>
                                 <th>Dosis</th>
                                 <th>Frecuencia</th>
@@ -347,9 +350,12 @@ else if (selectedReceta != null)
                             </tr>
                         </thead>
                         <tbody>
+                            @{ int medNum = 0; }
                             @foreach (var med in medicamentos)
                             {
+                                medNum++;
                                 <tr>
+                                    <td class="text-muted">@medNum</td>
                                     <td class="fw-bold">@med.Nombre</td>
                                     <td>@med.Dosis</td>
                                     <td>@med.Frecuencia</td>
@@ -678,15 +684,19 @@ else
             html.Append("<h3 style='margin-top:20px;color:#1565C0;'>Medicamentos</h3>");
             html.Append("<table style='width:100%;border-collapse:collapse;'>");
             html.Append("<thead><tr style='background:#f5f5f5;'>");
+            html.Append("<th style='border:1px solid #ddd;padding:8px;width:40px;'>#</th>");
             html.Append("<th style='border:1px solid #ddd;padding:8px;'>Medicamento</th>");
             html.Append("<th style='border:1px solid #ddd;padding:8px;'>Dosis</th>");
             html.Append("<th style='border:1px solid #ddd;padding:8px;'>Frecuencia</th>");
             html.Append("<th style='border:1px solid #ddd;padding:8px;'>Duración</th>");
             html.Append("<th style='border:1px solid #ddd;padding:8px;'>Instrucciones</th>");
             html.Append("</tr></thead><tbody>");
+            int pdfNum = 0;
             foreach (var med in medicamentos)
             {
+                pdfNum++;
                 html.Append("<tr>");
+                html.Append($"<td style='border:1px solid #ddd;padding:8px;color:#888;'>{pdfNum}</td>");
                 html.Append($"<td style='border:1px solid #ddd;padding:8px;'>{Encode(med.Nombre)}</td>");
                 html.Append($"<td style='border:1px solid #ddd;padding:8px;'>{Encode(med.Dosis)}</td>");
                 html.Append($"<td style='border:1px solid #ddd;padding:8px;'>{Encode(med.Frecuencia)}</td>");

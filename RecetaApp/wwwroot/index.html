@@ -217,6 +217,196 @@
 
     </script>
 
+    <!-- SheetJS para importar Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script>
+        window.parseExcel = (base64Data) => {
+            try {
+                const workbook = XLSX.read(base64Data, { type: 'base64', cellDates: true });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+                const mapped = rows.map(row => {
+                    const keys = Object.keys(row);
+                    const find = (names) => {
+                        for (const n of names) {
+                            const key = keys.find(k => k.toLowerCase().trim() === n);
+                            if (key !== undefined) return row[key];
+                        }
+                        return '';
+                    };
+
+                    let fecha = find(['fecha', 'date', 'dia']);
+                    if (fecha instanceof Date) {
+                        const y = fecha.getFullYear();
+                        const m = String(fecha.getMonth() + 1).padStart(2, '0');
+                        const d = String(fecha.getDate()).padStart(2, '0');
+                        fecha = `${y}-${m}-${d}`;
+                    } else if (typeof fecha === 'string' && fecha) {
+                        const parts = fecha.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+                        if (parts) {
+                            const yr = parts[3].length === 2 ? '20' + parts[3] : parts[3];
+                            fecha = `${yr}-${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                        }
+                    }
+
+                    let hora = find(['hora', 'time', 'horario']);
+                    if (hora instanceof Date) {
+                        hora = `${String(hora.getHours()).padStart(2, '0')}:${String(hora.getMinutes()).padStart(2, '0')}`;
+                    } else if (typeof hora === 'number') {
+                        const totalMinutes = Math.round(hora * 24 * 60);
+                        const hh = String(Math.floor(totalMinutes / 60) % 24).padStart(2, '0');
+                        const mm = String(totalMinutes % 60).padStart(2, '0');
+                        hora = `${hh}:${mm}`;
+                    }
+
+                    const sistolica = parseInt(find(['sistolica', 'sistólica', 'sys', 'sistol', 'presion sistolica', 'presión sistólica'])) || 0;
+                    const diastolica = parseInt(find(['diastolica', 'diastólica', 'dia', 'dias', 'diastol', 'presion diastolica', 'presión diastólica'])) || 0;
+                    const pulso = parseInt(find(['pulso', 'pulse', 'fc', 'frecuencia cardiaca', 'frecuencia cardíaca', 'bpm'])) || 0;
+                    const notas = String(find(['notas', 'notes', 'nota', 'observaciones', 'comentarios']) || '');
+
+                    return { fecha, hora: hora || '', sistolica, diastolica, pulso, notas };
+                }).filter(r => r.sistolica > 0 && r.diastolica > 0);
+
+                return { success: true, data: mapped, totalRows: rows.length };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        };
+    </script>
+
+    <script>
+        window.exportToExcel = (jsonData, fileName) => {
+            try {
+                const data = JSON.parse(jsonData);
+                const ws = XLSX.utils.json_to_sheet(data);
+
+                const colWidths = [
+                    { wch: 12 }, // Fecha
+                    { wch: 8 },  // Hora
+                    { wch: 10 }, // Sistólica
+                    { wch: 10 }, // Diastólica
+                    { wch: 8 },  // Pulso
+                    { wch: 22 }, // Clasificación
+                    { wch: 30 }  // Notas
+                ];
+                ws['!cols'] = colWidths;
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Presión Arterial');
+                XLSX.writeFile(wb, fileName);
+                return { success: true };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        };
+    </script>
+
+    <!-- Chart.js para gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script>
+        window.presionChart = {
+            _instance: null,
+            render: (canvasId, jsonData) => {
+                try {
+                    const data = JSON.parse(jsonData);
+                    const labels = data.map(d => d.label);
+                    const sistolica = data.map(d => d.sistolica);
+                    const diastolica = data.map(d => d.diastolica);
+                    const pulso = data.map(d => d.pulso);
+                    const hasPulso = pulso.some(v => v > 0);
+
+                    if (window.presionChart._instance) {
+                        window.presionChart._instance.destroy();
+                        window.presionChart._instance = null;
+                    }
+
+                    const canvas = document.getElementById(canvasId);
+                    if (!canvas) return { success: false, error: 'Canvas not found' };
+
+                    const datasets = [
+                        {
+                            label: 'Sistólica',
+                            data: sistolica,
+                            borderColor: '#e53935',
+                            backgroundColor: 'rgba(229,57,53,0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#e53935',
+                            fill: false
+                        },
+                        {
+                            label: 'Diastólica',
+                            data: diastolica,
+                            borderColor: '#1565C0',
+                            backgroundColor: 'rgba(21,101,192,0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#1565C0',
+                            fill: false
+                        }
+                    ];
+
+                    if (hasPulso) {
+                        datasets.push({
+                            label: 'Pulso',
+                            data: pulso.map(v => v > 0 ? v : null),
+                            borderColor: '#00897B',
+                            backgroundColor: 'rgba(0,137,123,0.1)',
+                            borderWidth: 1.5,
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#00897B',
+                            fill: false
+                        });
+                    }
+
+                    window.presionChart._instance = new Chart(canvas, {
+                        type: 'line',
+                        data: { labels, datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: {
+                                legend: { position: 'top', labels: { usePointStyle: true, padding: 16 } },
+                                tooltip: {
+                                    callbacks: {
+                                        label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} ${ctx.dataset.label === 'Pulso' ? 'lpm' : 'mmHg'}`
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    ticks: { maxRotation: 45, font: { size: 11 } },
+                                    grid: { display: false }
+                                },
+                                y: {
+                                    min: 40,
+                                    grid: { color: 'rgba(0,0,0,0.06)' },
+                                    ticks: { font: { size: 11 } }
+                                }
+                            }
+                        }
+                    });
+
+                    return { success: true };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            destroy: () => {
+                if (window.presionChart._instance) {
+                    window.presionChart._instance.destroy();
+                    window.presionChart._instance = null;
+                }
+            }
+        };
+    </script>
+
     <!-- html2pdf para exportar a PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>

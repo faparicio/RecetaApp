@@ -2,6 +2,7 @@
 @inject PresionArterialService PresionService
 @inject PacienteService PacienteService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>Presión Arterial - RecetaApp</PageTitle>
 
@@ -19,6 +20,15 @@
         <div class="d-flex gap-2">
             <button class="btn-modern btn-modern-secondary" @onclick='() => Navigation.NavigateTo("/presion-arterial")'>
                 ← Todos
+            </button>
+            <button class="btn btn-outline-info" @onclick="ToggleChart" style="border-radius: 12px;">
+                <span style="font-size: 1.1rem;">&#128200;</span> @(showChart ? "Ocultar" : "Gráfica")
+            </button>
+            <button class="btn btn-outline-success" @onclick="() => showImport = true" style="border-radius: 12px;">
+                <span style="font-size: 1.1rem;">&#128206;</span> Importar
+            </button>
+            <button class="btn btn-outline-primary" @onclick="ShowExportPanel" style="border-radius: 12px;">
+                <span style="font-size: 1.1rem;">&#128190;</span> Exportar
             </button>
             <button class="btn-modern btn-modern-primary" @onclick="() => ShowNewForm()">
                 + Nueva Medición
@@ -39,6 +49,27 @@
             @RenderForm()
         }
 
+        @if (showImport)
+        {
+            @RenderImportPanel()
+        }
+
+        @if (showExport)
+        {
+            @RenderExportPanel()
+        }
+
+        @if (showChart && pacienteMediciones.Count > 1)
+        {
+            <div class="card mb-4 border-0 shadow-sm" style="border-radius: 16px;">
+                <div class="card-body p-3">
+                    <div style="position: relative; height: 300px;">
+                        <canvas id="presionChartCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        }
+
         @if (pacienteMediciones.Count == 0 && !showForm)
         {
             <div class="text-center py-5">
@@ -48,9 +79,9 @@
         }
         else if (pacienteMediciones.Count > 0)
         {
-            <div class="table-responsive">
-                <table class="table table-hover align-middle" style="border-radius: 12px; overflow: hidden;">
-                    <thead style="background: linear-gradient(135deg, #1565C0, #0D47A1); color: white;">
+            <div class="table-responsive" style="max-height: 500px; overflow-y: auto; border-radius: 12px;">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background: linear-gradient(135deg, #1565C0, #0D47A1); color: white; position: sticky; top: 0; z-index: 1;">
                         <tr>
                             <th class="px-3">Fecha</th>
                             <th class="px-3">Hora</th>
@@ -166,6 +197,24 @@ else
     private bool showForm = false;
     private bool isSaving = false;
     private string? errorMessage;
+
+    // Chart
+    private bool showChart = false;
+
+    // Export Excel
+    private bool showExport = false;
+    private bool exportAllRecords = true;
+    private DateTime? exportFechaDesde;
+    private DateTime? exportFechaHasta;
+    private string? exportError;
+
+    // Import Excel
+    private bool showImport = false;
+    private bool isImporting = false;
+    private List<PresionArterial> importPreview = new();
+    private string? importError;
+    private string? importSuccess;
+    private int importTotalRows;
 
     private List<PresionArterial> pacienteMediciones =>
         mediciones.Where(m => m.PacienteId == PacienteId).ToList();
@@ -374,6 +423,346 @@ else
         if (DateTime.TryParse(fecha, out var dt))
             return dt.ToString("dd/MM/yyyy");
         return fecha;
+    }
+
+    private async Task ToggleChart()
+    {
+        showChart = !showChart;
+        if (showChart && pacienteMediciones.Count > 1)
+        {
+            await Task.Yield();
+            StateHasChanged();
+            await Task.Delay(50);
+            await RenderChart();
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("presionChart.destroy");
+        }
+    }
+
+    private async Task RenderChart()
+    {
+        var ordered = pacienteMediciones
+            .OrderBy(m => m.Fecha).ThenBy(m => m.Hora)
+            .ToList();
+
+        var chartData = ordered.Select(m => new
+        {
+            label = FormatFecha(m.Fecha) + (!string.IsNullOrEmpty(m.Hora) ? $" {m.Hora}" : ""),
+            sistolica = m.Sistolica,
+            diastolica = m.Diastolica,
+            pulso = m.Pulso
+        }).ToList();
+
+        var json = System.Text.Json.JsonSerializer.Serialize(chartData);
+        await JS.InvokeAsync<System.Text.Json.JsonElement>("presionChart.render", "presionChartCanvas", json);
+    }
+
+    private List<PresionArterial> ExportFiltered
+    {
+        get
+        {
+            var list = pacienteMediciones;
+            if (exportAllRecords) return list;
+
+            return list.Where(m =>
+            {
+                if (!DateTime.TryParse(m.Fecha, out var fecha)) return false;
+                if (exportFechaDesde.HasValue && fecha.Date < exportFechaDesde.Value.Date)
+                    return false;
+                if (exportFechaHasta.HasValue && fecha.Date > exportFechaHasta.Value.Date)
+                    return false;
+                return true;
+            }).ToList();
+        }
+    }
+
+    private void ShowExportPanel()
+    {
+        showExport = true;
+        exportAllRecords = true;
+        exportFechaDesde = null;
+        exportFechaHasta = null;
+        exportError = null;
+    }
+
+    private RenderFragment RenderExportPanel() => __builder =>
+    {
+        var filtered = ExportFiltered;
+
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 16px;">
+            <div class="card-body p-4">
+                <h5 class="mb-3">Exportar a Excel</h5>
+
+                <div class="mb-3">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" id="exportAll" checked="@exportAllRecords"
+                               @onchange="() => { exportAllRecords = true; }" />
+                        <label class="form-check-label" for="exportAll">
+                            Todas las lecturas <span class="text-muted">(@pacienteMediciones.Count)</span>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" id="exportRange" checked="@(!exportAllRecords)"
+                               @onchange="() => { exportAllRecords = false; }" />
+                        <label class="form-check-label" for="exportRange">
+                            Periodo específico
+                        </label>
+                    </div>
+                </div>
+
+                @if (!exportAllRecords)
+                {
+                    <div class="form-grid-2 mb-3">
+                        <div class="form-group">
+                            <label class="form-label-modern">Desde</label>
+                            <input type="date" class="form-input" @bind="exportFechaDesde" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label-modern">Hasta</label>
+                            <input type="date" class="form-input" @bind="exportFechaHasta" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3 text-muted" style="font-size: 0.9rem;">
+                        @if (filtered.Count > 0)
+                        {
+                            <span>@filtered.Count lectura@(filtered.Count != 1 ? "s" : "") en el periodo seleccionado</span>
+                        }
+                        else
+                        {
+                            <span>No hay lecturas en el periodo indicado</span>
+                        }
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(exportError))
+                {
+                    <div class="alert alert-danger py-2">@exportError</div>
+                }
+
+                <div class="d-flex gap-2">
+                    <button class="btn-modern btn-modern-primary" @onclick="ExportExcel" disabled="@(filtered.Count == 0)">
+                        Exportar @filtered.Count lecturas
+                    </button>
+                    <button class="btn-modern btn-modern-secondary" @onclick="() => showExport = false">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    };
+
+    private async Task ExportExcel()
+    {
+        var data = ExportFiltered;
+        if (data.Count == 0) return;
+
+        exportError = null;
+
+        var rows = data.Select(m => new
+        {
+            Fecha = FormatFecha(m.Fecha),
+            m.Hora,
+            Sistolica = m.Sistolica,
+            Diastolica = m.Diastolica,
+            Pulso = m.Pulso > 0 ? m.Pulso : (int?)null,
+            Clasificacion = m.Clasificacion,
+            Notas = m.Notas
+        }).ToList();
+
+        var json = System.Text.Json.JsonSerializer.Serialize(rows);
+        var nombre = pacienteActual?.Nombre?.Replace(" ", "_") ?? "Paciente";
+        var fileName = $"PresionArterial_{nombre}_{DateTime.Now:yyyyMMdd}.xlsx";
+
+        var result = await JS.InvokeAsync<System.Text.Json.JsonElement>("exportToExcel", json, fileName);
+        if (!result.GetProperty("success").GetBoolean())
+            exportError = $"Error al exportar: {result.GetProperty("error").GetString()}";
+        else
+            showExport = false;
+    }
+
+    private RenderFragment RenderImportPanel() => __builder =>
+    {
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 16px;">
+            <div class="card-body p-4">
+                <h5 class="mb-3">Importar desde Excel</h5>
+
+                <div class="alert alert-info py-2 mb-3" style="font-size: 0.9rem;">
+                    <strong>Formato esperado:</strong> El archivo debe tener columnas con los nombres:
+                    <strong>Fecha</strong>, <strong>Hora</strong>, <strong>Sistolica</strong>, <strong>Diastolica</strong>,
+                    <strong>Pulso</strong> (opcional), <strong>Notas</strong> (opcional).
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label-modern">Archivo Excel (.xlsx, .xls)</label>
+                    <InputFile class="form-control" accept=".xlsx,.xls,.csv" OnChange="OnFileSelected" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(importError))
+                {
+                    <div class="alert alert-danger py-2">@importError</div>
+                }
+
+                @if (!string.IsNullOrEmpty(importSuccess))
+                {
+                    <div class="alert alert-success py-2">@importSuccess</div>
+                }
+
+                @if (importPreview.Count > 0)
+                {
+                    <div class="mb-3">
+                        <strong>Vista previa:</strong> @importPreview.Count lecturas encontradas
+                        @if (importTotalRows > importPreview.Count)
+                        {
+                            <span class="text-muted"> (de @importTotalRows filas, se descartaron @(importTotalRows - importPreview.Count) sin valores de presión)</span>
+                        }
+                    </div>
+                    <div class="table-responsive mb-3" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead style="position: sticky; top: 0; background: #f8f9fa;">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Fecha</th>
+                                    <th>Hora</th>
+                                    <th class="text-center">Sis</th>
+                                    <th class="text-center">Dia</th>
+                                    <th class="text-center">Pulso</th>
+                                    <th>Clasificación</th>
+                                    <th>Notas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < importPreview.Count; i++)
+                                {
+                                    var item = importPreview[i];
+                                    <tr>
+                                        <td class="text-muted">@(i + 1)</td>
+                                        <td>@FormatFecha(item.Fecha)</td>
+                                        <td>@(string.IsNullOrEmpty(item.Hora) ? "—" : item.Hora)</td>
+                                        <td class="text-center fw-bold">@item.Sistolica</td>
+                                        <td class="text-center fw-bold">@item.Diastolica</td>
+                                        <td class="text-center">@(item.Pulso > 0 ? item.Pulso.ToString() : "—")</td>
+                                        <td>
+                                            <span class="badge bg-@(item.ClasificacionColor == "orange" ? "warning" : item.ClasificacionColor)" style="font-size: 0.75rem;">
+                                                @item.Clasificacion
+                                            </span>
+                                        </td>
+                                        <td class="text-muted" style="max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            @(string.IsNullOrEmpty(item.Notas) ? "—" : item.Notas)
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <div class="d-flex gap-2">
+                    @if (importPreview.Count > 0)
+                    {
+                        <button class="btn-modern btn-modern-primary" @onclick="ImportAll" disabled="@isImporting">
+                            @if (isImporting) { <div class="btn-spinner"></div> }
+                            Importar @importPreview.Count lecturas
+                        </button>
+                    }
+                    <button class="btn-modern btn-modern-secondary" @onclick="CancelImport">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    };
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        importError = null;
+        importSuccess = null;
+        importPreview.Clear();
+
+        var file = e.File;
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            importError = "El archivo no debe superar 5 MB";
+            return;
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            using var ms = new System.IO.MemoryStream();
+            await stream.CopyToAsync(ms);
+            var base64 = Convert.ToBase64String(ms.ToArray());
+
+            var result = await JS.InvokeAsync<System.Text.Json.JsonElement>("parseExcel", base64);
+
+            if (!result.GetProperty("success").GetBoolean())
+            {
+                importError = $"Error al leer el archivo: {result.GetProperty("error").GetString()}";
+                return;
+            }
+
+            importTotalRows = result.GetProperty("totalRows").GetInt32();
+            var data = result.GetProperty("data");
+
+            foreach (var row in data.EnumerateArray())
+            {
+                importPreview.Add(new PresionArterial
+                {
+                    Fecha = row.GetProperty("fecha").GetString() ?? "",
+                    Hora = row.GetProperty("hora").GetString() ?? "",
+                    Sistolica = row.GetProperty("sistolica").GetInt32(),
+                    Diastolica = row.GetProperty("diastolica").GetInt32(),
+                    Pulso = row.GetProperty("pulso").GetInt32(),
+                    Notas = row.GetProperty("notas").GetString() ?? ""
+                });
+            }
+
+            if (importPreview.Count == 0)
+                importError = "No se encontraron filas con datos de presión válidos. Verifica los nombres de las columnas.";
+        }
+        catch (Exception ex)
+        {
+            importError = $"Error al procesar el archivo: {ex.Message}";
+        }
+    }
+
+    private async Task ImportAll()
+    {
+        if (string.IsNullOrEmpty(PacienteId) || importPreview.Count == 0) return;
+
+        isImporting = true;
+        importError = null;
+        var pacienteNombre = pacienteActual?.Nombre ?? "";
+        int importados = 0;
+        int errores = 0;
+
+        foreach (var item in importPreview)
+        {
+            item.PacienteId = PacienteId;
+            item.PacienteNombre = pacienteNombre;
+
+            var (success, error, _) = await PresionService.AddAsync(item);
+            if (success)
+                importados++;
+            else
+                errores++;
+        }
+
+        isImporting = false;
+        importPreview.Clear();
+
+        if (errores == 0)
+            importSuccess = $"Se importaron {importados} lecturas correctamente.";
+        else
+            importSuccess = $"Se importaron {importados} lecturas. {errores} registros fallaron.";
+
+        await LoadData();
+    }
+
+    private void CancelImport()
+    {
+        showImport = false;
+        importPreview.Clear();
+        importError = null;
+        importSuccess = null;
     }
 
     private class ResumenPaciente

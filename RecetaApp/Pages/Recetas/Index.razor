@@ -383,39 +383,47 @@ else if (recetas.Count == 0)
 }
 else
 {
-    <div class="row g-4">
-        @foreach (var receta in recetas)
-        {
-            <div class="col-md-6 col-lg-4">
-                <div class="modern-card accent-primary clickable-card" @onclick="() => SelectReceta(receta)">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <div class="card-name">@receta.PacienteNombre</div>
-                                <span class="card-badge card-badge-primary">@receta.Fecha</span>
+    @foreach (var grupo in recetas.GroupBy(r => r.PacienteNombre).OrderBy(g => g.Key))
+    {
+        <div class="mb-4">
+            <h5 class="fw-bold mb-3" style="color: #1565C0; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">
+                @grupo.Key
+                <span class="badge bg-primary ms-2" style="font-size: 0.75rem; font-weight: 500;">@grupo.Count()</span>
+            </h5>
+            <div class="row g-3">
+                @foreach (var receta in grupo.OrderByDescending(r => r.Fecha))
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="modern-card accent-primary clickable-card" @onclick="() => SelectReceta(receta)">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="card-badge card-badge-primary">@receta.Fecha</span>
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(receta.MedicoNombre))
+                                {
+                                    <div class="card-subtitle" style="margin-top: 8px;">Dr. @receta.MedicoNombre</div>
+                                }
+                                @if (!string.IsNullOrEmpty(receta.EdadPaciente))
+                                {
+                                    <div class="card-subtitle">Edad: @receta.EdadPaciente</div>
+                                }
+                                @if (!string.IsNullOrEmpty(receta.Diagnostico))
+                                {
+                                    <p class="card-note">@receta.Diagnostico</p>
+                                }
+                                <div class="card-actions" @onclick:stopPropagation="true">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => EditReceta(receta)">Editar</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteReceta(receta)">Eliminar</button>
+                                </div>
                             </div>
                         </div>
-                        @if (!string.IsNullOrEmpty(receta.MedicoNombre))
-                        {
-                            <div class="card-subtitle" style="margin-top: 8px;">Dr. @receta.MedicoNombre</div>
-                        }
-                        @if (!string.IsNullOrEmpty(receta.EdadPaciente))
-                        {
-                            <div class="card-subtitle">Edad: @receta.EdadPaciente</div>
-                        }
-                        @if (!string.IsNullOrEmpty(receta.Diagnostico))
-                        {
-                            <p class="card-note">@receta.Diagnostico</p>
-                        }
-                        <div class="card-actions" @onclick:stopPropagation="true">
-                            <button class="btn btn-sm btn-outline-primary" @onclick="() => EditReceta(receta)">Editar</button>
-                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteReceta(receta)">Eliminar</button>
-                        </div>
                     </div>
-                </div>
+                }
             </div>
-        }
-    </div>
+        </div>
+    }
 }
 
 @code {

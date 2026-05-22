@@ -2,7 +2,7 @@
 
 **Archivo:** `Pages/Recetas/Index.razor`  
 **Ruta:** `/recetas`  
-**Versión:** 26.04.30.01
+**Versión:** 26.05.22.01
 
 ## Descripcion
 
@@ -14,6 +14,9 @@ Pantalla principal y mas compleja de la app. Permite crear, ver, editar, elimina
 - Tarjetas `modern-card accent-primary clickable-card` con nombre del paciente, fecha, medico, edad y diagnostico
 - Filtrado por paciente via query param `?pacienteId={id}` (navegacion desde pantalla Pacientes)
 - Boton para quitar filtro
+
+### Numeracion de medicamentos
+Las tablas de medicamentos (formulario de creacion/edicion, vista detalle y exportacion PDF) incluyen una columna `#` con numeracion automatica secuencial.
 
 ### Crear/Editar Receta
 Formulario inline con campos:

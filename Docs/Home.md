@@ -6,17 +6,18 @@
 
 ## Descripcion
 
-Pantalla principal de la aplicacion con navegacion a las 4 secciones principales mediante tarjetas interactivas.
+Pantalla principal de la aplicacion con navegacion a las secciones principales mediante tarjetas interactivas.
 
 ## Componentes
 
 - Logo central: cuadrado redondeado con gradiente azul-teal (#1565C0 a #00897B), icono SVG blanco, 80x80px
-- 5 tarjetas de navegacion en grid responsive (col-6 mobile, col-lg-3 desktop):
+- 6 tarjetas de navegacion en grid responsive (col-6 mobile, col-lg-3 desktop):
   - **Recetas** (gradiente azul) - `/recetas`
   - **Pacientes** (gradiente verde) - `/pacientes`
   - **Medicos** (gradiente celeste) - `/medicos`
   - **Medicamentos** (gradiente naranja) - `/catalogo`
   - **Presion Arterial** (gradiente rojo) - `/presion-arterial`
+  - **Alergias** (gradiente ambar) - `/alergias`
 
 ## Estilos
 

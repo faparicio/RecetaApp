@@ -17,6 +17,7 @@ Menu lateral de navegacion con branding y links a todas las secciones.
   - Medicos (`/medicos`) - icono credencial
   - Medicamentos (`/catalogo`) - icono capsula
   - Presion Arterial (`/presion-arterial`) - icono pulso cardiaco
+  - Alergias (`/alergias`) - icono triangulo de advertencia
 
 ## Version dinamica
 

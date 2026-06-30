@@ -1,0 +1,357 @@
+@page "/alergias"
+@inject AlergiaService AlergiaService
+@inject PacienteService PacienteService
+@inject NavigationManager Navigation
+
+<PageTitle>Alergias - RecetaApp</PageTitle>
+
+@if (!string.IsNullOrEmpty(PacienteId))
+{
+    @* === Vista detalle: alergias de un paciente === *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0" style="color: #1565C0;">Alergias</h3>
+            @if (pacienteActual != null)
+            {
+                <div class="text-muted mt-1">Paciente: <strong>@pacienteActual.Nombre</strong></div>
+            }
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn-modern btn-modern-secondary" @onclick='() => Navigation.NavigateTo("/alergias")'>
+                ← Todos
+            </button>
+            <button class="btn-modern btn-modern-primary" @onclick="ShowNewForm">
+                + Nueva Alergia
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        @if (showForm)
+        {
+            @RenderForm()
+        }
+
+        @if (pacienteAlergias.Count == 0 && !showForm)
+        {
+            <div class="text-center py-5">
+                <p class="text-muted fs-5">No hay alergias registradas</p>
+                <button class="btn-modern btn-modern-primary" @onclick="ShowNewForm">Registrar primera alergia</button>
+            </div>
+        }
+        else if (pacienteAlergias.Count > 0)
+        {
+            <div class="table-responsive" style="max-height: 500px; overflow-y: auto; border-radius: 12px;">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background: linear-gradient(135deg, #1565C0, #0D47A1); color: white; position: sticky; top: 0; z-index: 1;">
+                        <tr>
+                            <th class="px-3">Alergia</th>
+                            <th class="px-3">Severidad</th>
+                            <th class="px-3">Reacción</th>
+                            <th class="px-3">Notas</th>
+                            <th class="px-3 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in pacienteAlergias)
+                        {
+                            <tr>
+                                <td class="px-3 fw-bold">@a.Nombre</td>
+                                <td class="px-3">
+                                    <span class="badge bg-@a.SeveridadColor">
+                                        @(string.IsNullOrEmpty(a.Severidad) ? "—" : a.Severidad)
+                                    </span>
+                                </td>
+                                <td class="px-3">@(string.IsNullOrEmpty(a.Reaccion) ? "—" : a.Reaccion)</td>
+                                <td class="px-3 text-muted" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    @(string.IsNullOrEmpty(a.Notas) ? "—" : a.Notas)
+                                </td>
+                                <td class="px-3 text-center">
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => Edit(a)">Editar</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(a)">Eliminar</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+}
+else
+{
+    @* === Vista resumen: todos los pacientes === *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold mb-0" style="color: #1565C0;">Alergias</h3>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (resumenPacientes.Count == 0)
+    {
+        <div class="text-center py-5">
+            <p class="text-muted fs-5">No hay alergias registradas</p>
+            <p class="text-muted">Agrega alergias desde la ficha de cada paciente</p>
+            <button class="btn-modern btn-modern-secondary" @onclick='() => Navigation.NavigateTo("/pacientes")'>Ir a Pacientes</button>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var r in resumenPacientes)
+            {
+                var accentClass = r.MaxSeveridadColor switch
+                {
+                    "success" => "accent-success",
+                    "warning" => "accent-warning",
+                    "danger" => "accent-danger",
+                    _ => "accent-warning"
+                };
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="modern-card @accentClass" style="cursor: pointer;" @onclick='() => Navigation.NavigateTo($"/alergias?pacienteId={r.PacienteId}")'>
+                        <div class="card-body">
+                            <div class="card-name">@r.PacienteNombre</div>
+                            <div class="mt-2 d-flex flex-wrap gap-1">
+                                @foreach (var a in r.Alergias.Take(4))
+                                {
+                                    <span class="badge bg-@a.SeveridadColor">@a.Nombre</span>
+                                }
+                                @if (r.Total > 4)
+                                {
+                                    <span class="badge bg-secondary">+@(r.Total - 4)</span>
+                                }
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="text-muted" style="font-size: 0.85rem;">@r.Total alergia@(r.Total != 1 ? "s" : "")</span>
+                                <span class="text-primary" style="font-size: 0.85rem;">Ver detalle →</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? PacienteId { get; set; }
+
+    private List<Alergia> alergias = new();
+    private List<Paciente> pacientes = new();
+    private Paciente? pacienteActual;
+    private Alergia formModel = new();
+    private Alergia? editingItem;
+    private bool isLoading = true;
+    private bool showForm = false;
+    private bool isSaving = false;
+    private string? errorMessage;
+
+    private static readonly string[] Severidades = { "Leve", "Moderada", "Severa" };
+
+    private List<Alergia> pacienteAlergias =>
+        alergias.Where(a => a.PacienteId == PacienteId).ToList();
+
+    private List<ResumenPaciente> resumenPacientes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        var loadAlergias = AlergiaService.GetAllAsync();
+        var loadPacientes = PacienteService.GetAllAsync();
+        alergias = await loadAlergias;
+        pacientes = await loadPacientes;
+
+        if (!string.IsNullOrEmpty(PacienteId))
+            pacienteActual = pacientes.FirstOrDefault(p => p.Id == PacienteId);
+
+        resumenPacientes = alergias
+            .GroupBy(a => a.PacienteId)
+            .Select(g => new ResumenPaciente
+            {
+                PacienteId = g.Key,
+                PacienteNombre = g.First().PacienteNombre,
+                Total = g.Count(),
+                Alergias = g.OrderByDescending(a => a.SeveridadPeso).ThenBy(a => a.Nombre).ToList(),
+                MaxSeveridadColor = g.OrderByDescending(a => a.SeveridadPeso).First().SeveridadColor
+            })
+            .OrderBy(r => r.PacienteNombre)
+            .ToList();
+
+        isLoading = false;
+    }
+
+    private void ShowNewForm()
+    {
+        editingItem = null;
+        formModel = new Alergia
+        {
+            PacienteId = PacienteId ?? string.Empty,
+            Severidad = "Leve"
+        };
+        showForm = true;
+    }
+
+    private void Edit(Alergia item)
+    {
+        editingItem = item;
+        formModel = new Alergia
+        {
+            Id = item.Id,
+            PacienteId = item.PacienteId,
+            PacienteNombre = item.PacienteNombre,
+            Nombre = item.Nombre,
+            Severidad = item.Severidad,
+            Reaccion = item.Reaccion,
+            Notas = item.Notas,
+            UserId = item.UserId,
+            CreatedAt = item.CreatedAt
+        };
+        showForm = true;
+    }
+
+    private async Task Save()
+    {
+        var pacienteId = !string.IsNullOrEmpty(PacienteId) ? PacienteId : formModel.PacienteId;
+        if (string.IsNullOrWhiteSpace(pacienteId))
+        {
+            errorMessage = "Selecciona un paciente";
+            return;
+        }
+        formModel.PacienteId = pacienteId;
+
+        if (string.IsNullOrWhiteSpace(formModel.Nombre))
+        {
+            errorMessage = "El nombre de la alergia es obligatorio";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = null;
+
+        formModel.PacienteNombre = pacientes.FirstOrDefault(p => p.Id == formModel.PacienteId)?.Nombre ?? "";
+
+        if (editingItem != null)
+        {
+            var (success, error) = await AlergiaService.UpdateAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+        }
+        else
+        {
+            var (success, error, _) = await AlergiaService.AddAsync(formModel);
+            if (!success) { errorMessage = error; isSaving = false; return; }
+        }
+
+        isSaving = false;
+        CancelForm();
+        await LoadData();
+    }
+
+    private async Task Delete(Alergia item)
+    {
+        await AlergiaService.DeleteAsync(item.Id);
+        await LoadData();
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        editingItem = null;
+        formModel = new();
+        errorMessage = null;
+    }
+
+    private RenderFragment RenderForm() => __builder =>
+    {
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 16px;">
+            <div class="card-body p-4">
+                <h5 class="mb-3">@(editingItem != null ? "Editar" : "Nueva") Alergia</h5>
+
+                @if (pacienteActual == null)
+                {
+                    <div class="form-group mb-3">
+                        <label class="form-label-modern">Paciente *</label>
+                        <select class="form-input" @bind="formModel.PacienteId">
+                            <option value="">Seleccionar paciente...</option>
+                            @foreach (var p in pacientes)
+                            {
+                                <option value="@p.Id">@p.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                }
+
+                <div class="form-grid-2 mb-3">
+                    <div class="form-group">
+                        <label class="form-label-modern">Alergia *</label>
+                        <input class="form-input" @bind="formModel.Nombre" placeholder="Ej: Penicilina, Mariscos, Polen" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-modern">Severidad</label>
+                        <select class="form-input" @bind="formModel.Severidad">
+                            @foreach (var s in Severidades)
+                            {
+                                <option value="@s">@s</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label-modern">Reacción</label>
+                    <input class="form-input" @bind="formModel.Reaccion" placeholder="Ej: Urticaria, Dificultad para respirar, Hinchazón" />
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(formModel.Nombre))
+                {
+                    <div class="alert alert-@formModel.SeveridadColor py-2 mb-3">
+                        <strong>@formModel.Nombre</strong>@(string.IsNullOrEmpty(formModel.Severidad) ? "" : $" · {formModel.Severidad}")
+                    </div>
+                }
+
+                <div class="form-group mb-3">
+                    <label class="form-label-modern">Notas</label>
+                    <textarea class="form-input form-textarea" @bind="formModel.Notas" placeholder="Observaciones adicionales"></textarea>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">@errorMessage</div>
+                }
+
+                <div class="d-flex gap-2">
+                    <button class="btn-modern btn-modern-primary" @onclick="Save" disabled="@isSaving">
+                        @if (isSaving) { <div class="btn-spinner"></div> }
+                        Guardar
+                    </button>
+                    <button class="btn-modern btn-modern-secondary" @onclick="CancelForm">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    };
+
+    private class ResumenPaciente
+    {
+        public string PacienteId { get; set; } = string.Empty;
+        public string PacienteNombre { get; set; } = string.Empty;
+        public int Total { get; set; }
+        public List<Alergia> Alergias { get; set; } = new();
+        public string MaxSeveridadColor { get; set; } = "secondary";
+    }
+}

@@ -21,6 +21,7 @@ Cada entidad tiene un servicio que inyecta `IJSRuntime` para interoperar con las
 - `MedicamentoService` - CRUD medicamentos
 - `CatalogoMedicamentoService` - CRUD catalogo de medicamentos
 - `PresionArterialService` - CRUD mediciones de presion arterial
+- `AlergiaService` - CRUD alergias por paciente
 
 Patron comun: `GetAllAsync()`, `AddAsync()`, `UpdateAsync()`, `DeleteAsync()`  
 Retorno de operaciones: `(bool Success, string? Error)` o `(bool, string?, string? Id)`
@@ -37,6 +38,7 @@ Todas las entidades incluyen campo `UserId`. Las consultas filtran por userId pa
 - `medicamentos` - Medicamentos por receta (relacion via RecetaId)
 - `catalogoMedicamentos` - Catalogo de medicamentos frecuentes
 - `presionArterial` - Mediciones de presion arterial por paciente
+- `alergias` - Alergias por paciente (nombre, severidad, reaccion)
 
 ## PWA
 

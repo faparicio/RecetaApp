@@ -20,6 +20,7 @@ CRUD de pacientes (familiares). Permite registrar nombre, fecha de nacimiento, a
 - **Navegacion:**
   - Boton "Recetas" navega a `/recetas?pacienteId={id}`
   - Boton "Presion" navega a `/presion-arterial?pacienteId={id}`
+  - Boton "Alergias" navega a `/alergias?pacienteId={id}`
 
 ## Calculo de edad
 

@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "RecetaApp/bin/Release/net9.0/publish/wwwroot",
+    "public": "RecetaApp/bin/Release/net10.0/publish/wwwroot",
     "ignore": [
       "firebase.json",
       "**/.*",

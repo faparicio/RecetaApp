@@ -51,6 +51,7 @@ Formulario inline con campos:
 ### Edicion de receta
 - Carga los medicamentos existentes en la tabla inline
 - Al guardar: elimina todos los medicamentos existentes y re-agrega los de la lista (delete + re-add)
+- **Riesgo conocido:** el delete + re-add no es atomico. Si falla a mitad (perdida de red, error de Firestore), la receta puede quedar con los medicamentos parcialmente borrados. Pendiente de migrar a una estrategia idempotente (upsert por Id o batch write).
 
 ## Calculo automatico de edad
 

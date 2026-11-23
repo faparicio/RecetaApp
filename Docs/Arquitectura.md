@@ -1,10 +1,10 @@
 # Arquitectura General - RecetaApp
 
-**Versión:** 26.05.04.01
+**Versión:** 26.06.30.01
 
 ## Stack Tecnologico
 
-- **Framework:** .NET 9.0 Blazor WebAssembly (browser-wasm)
+- **Framework:** .NET 10.0 Blazor WebAssembly (browser-wasm)
 - **Tipo:** PWA (Progressive Web App) instalable
 - **Backend:** Firebase (Firestore, Authentication)
 - **Hosting:** Firebase Hosting (https://recetaapp-ab3f0.web.app)

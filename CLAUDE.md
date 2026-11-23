@@ -20,7 +20,7 @@ dotnet publish -c Release
 
 ## Architecture Overview
 
-**Framework:** .NET 9.0 Blazor WebAssembly (browser-wasm) — PWA instalable
+**Framework:** .NET 10.0 Blazor WebAssembly (browser-wasm) — PWA instalable
 **Backend:** Firebase (Firestore, Authentication, Storage) via JavaScript interop
 **UI:** Bootstrap 5
 

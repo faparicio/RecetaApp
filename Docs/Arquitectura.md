@@ -49,9 +49,14 @@ Todas las entidades incluyen campo `UserId`. Las consultas filtran por userId pa
 ## Deployment
 
 ```bash
-dotnet publish -c Release
+cd RecetaApp && rm -rf bin obj && dotnet publish -c Release && cd ..
 firebase deploy --only hosting --account fahz.dev.26@gmail.com
 ```
+
+- `firebase.json` publica `RecetaApp/bin/Release/net10.0/publish/wwwroot`; al cambiar de TargetFramework hay que actualizar esa ruta.
+- Version con formato de fecha `yy.mm.dd.nn` (ej. `26.11.23.01`) en `<Version>`, `<AssemblyVersion>` y `<FileVersion>` del csproj; subirla en cada deploy.
+- Recomendado: `dotnet workload install wasm-tools` para publicar con optimizacion (AOT/trimming); sin el, publica sin optimizar.
+- Ultimo deploy: 26.11.23.01 (migracion a .NET 10, runtime/paquetes 10.0.9). URL: https://recetaapp-ab3f0.web.app
 
 Cuenta Firebase: fahz.dev.26@gmail.com  
 Proyecto: recetaapp-ab3f0

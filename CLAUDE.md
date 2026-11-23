@@ -11,7 +11,7 @@ Este proyecto NO utiliza el workflow de Waykee (no crear tickets, no buscar RAG,
 # Build the project
 dotnet build
 
-# Run development server (launches at https://localhost:7029)
+# Run development server (launches at http://localhost:5037)
 dotnet run
 
 # Publish for production
